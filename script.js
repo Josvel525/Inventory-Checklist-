@@ -1,6 +1,7 @@
 (() => {
-  const STORE_KEY = "venue_inventory_v2";
+  const STORE_KEY = "venue_inventory_v4";
   const TEMPLATE_URL = "data.json";
+  const CASE_OPTIONS = [12, 18, 24, 30, 36];
 
   const $ = id => document.getElementById(id);
 
@@ -11,11 +12,9 @@
     date: $("eventDate"),
 
     inventory: $("inventoryRoot"),
-    totals: $("totalsRoot"),
     grand: $("grandTotal"),
 
     btnLoadTemplate: $("btnLoadTemplate"),
-    btnAddItem: $("btnAddItem"),
     btnSave: $("btnSave"),
     btnExportExcel: $("btnExportExcel"),
     btnExportPDF: $("btnExportPDF"),
@@ -23,7 +22,6 @@
   };
 
   const uid = () => Math.random().toString(36).slice(2);
-
   const today = () => new Date().toISOString().split("T")[0];
 
   const getState = () => JSON.parse(localStorage.getItem(STORE_KEY));
@@ -38,40 +36,40 @@
     return s;
   }
 
-  function syncMeta(state) {
-    state.meta.venue = els.venue.value.trim();
-    state.meta.event = els.event.value.trim();
-    state.meta.bartender = els.bartender.value.trim();
-    state.meta.date = els.date.value || today();
+  function syncMeta(s) {
+    s.meta.venue = els.venue.value.trim();
+    s.meta.event = els.event.value.trim();
+    s.meta.bartender = els.bartender.value.trim();
+    s.meta.date = els.date.value || today();
   }
 
-  function requireBartender(state) {
-    if (!state.meta.bartender) {
-      alert("Bartender name is required.");
+  function requireBartender(s) {
+    if (!s.meta.bartender) {
+      alert("Bartender name is required before export.");
       return false;
     }
     return true;
   }
 
-  function normalize(item) {
+  function normalize(i) {
     return {
-      id: item.id || uid(),
-      category: item.category,
-      productType: item.productType || "",
-      brand: item.brand || "",
-      name: item.name,
-      primaryUnit: item.primaryUnit,
-      primaryQty: Number(item.primaryQty || 0),
-      secondaryUnit: item.secondaryUnit || "",
-      secondaryQty: Number(item.secondaryQty || 0),
-      notes: item.notes || ""
+      id: i.id || uid(),
+      category: i.category,
+      productType: i.productType || "",
+      brand: i.brand || "",
+      name: i.name,
+      primaryUnit: i.primaryUnit,
+      caseSize: i.caseSize || 24,
+      primaryQty: Number(i.primaryQty || 0),
+      secondaryUnit: i.secondaryUnit || "",
+      secondaryQty: Number(i.secondaryQty || 0),
+      notes: i.notes || ""
     };
   }
 
   function render() {
     const s = ensureState();
     syncMeta(s);
-
     s.items = s.items.map(normalize);
     setState(s);
 
@@ -80,34 +78,50 @@
     els.inventory.innerHTML = s.items.map(it => {
       grand += it.primaryQty + it.secondaryQty;
 
+      const caseDropdown = it.primaryUnit === "case"
+        ? `
+          <label class="field">
+            <span class="field__label">Cans per case</span>
+            <select data-role="caseSize" class="input">
+              ${CASE_OPTIONS.map(n =>
+                `<option value="${n}" ${n === it.caseSize ? "selected" : ""}>${n}</option>`
+              ).join("")}
+            </select>
+          </label>
+        `
+        : "";
+
       return `
-      <div class="item" data-id="${it.id}">
-        <div class="itemTop">
-          <div>
-            <div class="itemName">${it.name}</div>
-            <div class="itemMeta">${it.brand} • ${it.productType}</div>
-          </div>
-          <button class="iconbtn" data-action="delete">🗑️</button>
-        </div>
-
-        <div class="dual-qty">
-          <div class="qty-group">
-            <button data-action="dec-primary">−</button>
-            <span>${it.primaryQty}</span>
-            <button data-action="inc-primary">+</button>
-            <small>${it.primaryUnit}</small>
+        <div class="item" data-id="${it.id}">
+          <div class="itemTop">
+            <div>
+              <div class="itemName">${it.name}</div>
+              <div class="itemMeta">${it.brand} • ${it.productType}</div>
+            </div>
+            <button class="iconbtn" data-action="delete">🗑️</button>
           </div>
 
-          ${it.secondaryUnit ? `
-          <div class="qty-group">
-            <button data-action="dec-secondary">−</button>
-            <span>${it.secondaryQty}</span>
-            <button data-action="inc-secondary">+</button>
-            <small>${it.secondaryUnit}</small>
+          <div class="dual-qty">
+            <div class="qty-group">
+              <button data-action="dec-primary">−</button>
+              <span>${it.primaryQty}</span>
+              <button data-action="inc-primary">+</button>
+              <small>${it.primaryUnit}</small>
+            </div>
+
+            ${it.secondaryUnit ? `
+              <div class="qty-group">
+                <button data-action="dec-secondary">−</button>
+                <span>${it.secondaryQty}</span>
+                <button data-action="inc-secondary">+</button>
+                <small>${it.secondaryUnit}</small>
+              </div>
+            ` : ""}
           </div>
-          ` : ""}
+
+          ${caseDropdown}
         </div>
-      </div>`;
+      `;
     }).join("");
 
     els.grand.textContent = grand;
@@ -146,6 +160,13 @@
     }
   });
 
+  els.inventory.addEventListener("change", e => {
+    if (e.target.matches('[data-role="caseSize"]')) {
+      const itemEl = e.target.closest(".item");
+      updateItem(itemEl.dataset.id, { caseSize: Number(e.target.value) });
+    }
+  });
+
   els.btnLoadTemplate.onclick = async () => {
     if (!confirm("Load default template? This replaces current items.")) return;
     const s = ensureState();
@@ -179,16 +200,15 @@
     if (!requireBartender(s)) return;
 
     const rows = [
-      ["Item", "Primary Qty", "Primary Unit", "Secondary Qty", "Secondary Unit"]
+      ["Item", "Cases", "Cans/Case", "Loose Cans"]
     ];
 
     s.items.forEach(i => {
       rows.push([
         i.name,
-        i.primaryQty,
-        i.primaryUnit,
-        i.secondaryQty,
-        i.secondaryUnit
+        i.primaryUnit === "case" ? i.primaryQty : "",
+        i.primaryUnit === "case" ? i.caseSize : "",
+        i.secondaryQty
       ]);
     });
 
