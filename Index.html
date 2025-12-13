@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Venue Inventory Checklist</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Excel Export Library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand__mark">🍸</div>
+    <div>
+      <div class="brand__title">Inventory Checklist</div>
+      <div class="brand__subtitle">Auto-save • iPhone-friendly</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="btn btn--ghost" id="btnReset">Reset</button>
+    <button class="btn btn--primary" id="btnReport">Report</button>
+  </div>
+</header>
+
+<main class="shell">
+
+  <!-- EVENT INFO -->
+  <section class="card">
+    <h2 class="card__title">Event Information</h2>
+
+    <div class="grid grid--2">
+      <label class="field">
+        <span class="field__label">Venue</span>
+        <input id="venueName" class="input" placeholder="Venue name">
+      </label>
+
+      <label class="field">
+        <span class="field__label">Event</span>
+        <input id="eventName" class="input" placeholder="Event name">
+      </label>
+
+      <label class="field">
+        <span class="field__label">Bartender Name (Required)</span>
+        <input id="bartenderName" class="input" placeholder="Who completed this inventory" required>
+      </label>
+
+      <label class="field">
+        <span class="field__label">Date</span>
+        <input id="eventDate" class="input" type="date">
+      </label>
+    </div>
+
+    <div class="row row--wrap">
+      <button class="btn btn--soft" id="btnLoadTemplate">Load Template</button>
+      <button class="btn btn--soft" id="btnAddItem">+ Add Item</button>
+    </div>
+  </section>
+
+  <!-- INVENTORY -->
+  <section class="card">
+    <h2 class="card__title">Inventory</h2>
+    <div id="inventoryRoot"></div>
+  </section>
+
+  <!-- TOTALS / EXPORT -->
+  <section class="card">
+    <h2 class="card__title">Totals & Export</h2>
+
+    <div id="totalsRoot"></div>
+
+    <div class="grand">
+      <span>Total Count</span>
+      <strong id="grandTotal">0</strong>
+    </div>
+
+    <div class="row row--wrap">
+      <button class="btn btn--primary" id="btnSave">Save</button>
+      <button class="btn btn--soft" id="btnExportExcel">Export Excel</button>
+      <button class="btn btn--soft" id="btnExportPDF">Export PDF</button>
+    </div>
+  </section>
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
