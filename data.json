@@ -1,5 +1,10 @@
 {
-  "meta": { "venue": "", "event": "", "bartender": "", "date": "" },
+  "meta": {
+    "venue": "",
+    "event": "",
+    "bartender": "",
+    "date": ""
+  },
   "items": [
     {
       "category": "Beer",
@@ -7,6 +12,7 @@
       "brand": "Miller Lite",
       "name": "Miller Lite",
       "primaryUnit": "case",
+      "caseSize": 24,
       "primaryQty": 0,
       "secondaryUnit": "can",
       "secondaryQty": 0,
@@ -18,17 +24,7 @@
       "brand": "Michelob Ultra",
       "name": "Michelob Ultra",
       "primaryUnit": "case",
-      "primaryQty": 0,
-      "secondaryUnit": "can",
-      "secondaryQty": 0,
-      "notes": ""
-    },
-    {
-      "category": "Beer",
-      "productType": "Beer",
-      "brand": "Dos Equis",
-      "name": "Dos Equis",
-      "primaryUnit": "case",
+      "caseSize": 30,
       "primaryQty": 0,
       "secondaryUnit": "can",
       "secondaryQty": 0,
@@ -40,6 +36,7 @@
       "brand": "Shiner",
       "name": "Shiner",
       "primaryUnit": "case",
+      "caseSize": 24,
       "primaryQty": 0,
       "secondaryUnit": "can",
       "secondaryQty": 0,
@@ -51,40 +48,6 @@
       "productType": "Vodka",
       "brand": "Ketel One",
       "name": "Ketel One Vodka",
-      "primaryUnit": "bottle",
-      "primaryQty": 0,
-      "secondaryUnit": "",
-      "secondaryQty": 0,
-      "notes": ""
-    },
-    {
-      "category": "Liquor",
-      "productType": "Vodka",
-      "brand": "Svedka",
-      "name": "Svedka Raspberry Vodka",
-      "primaryUnit": "bottle",
-      "primaryQty": 0,
-      "secondaryUnit": "",
-      "secondaryQty": 0,
-      "notes": ""
-    },
-    {
-      "category": "Liquor",
-      "productType": "Whiskey",
-      "brand": "Jack Daniel's",
-      "name": "Jack Daniel's",
-      "primaryUnit": "bottle",
-      "primaryQty": 0,
-      "secondaryUnit": "",
-      "secondaryQty": 0,
-      "notes": ""
-    },
-
-    {
-      "category": "Wine",
-      "productType": "White Wine",
-      "brand": "Ryan Patrick",
-      "name": "Ryan Patrick Pinot Grigio",
       "primaryUnit": "bottle",
       "primaryQty": 0,
       "secondaryUnit": "",
