@@ -1,42 +1,95 @@
 {
-  "meta": {
-    "venue": "",
-    "event": "",
-    "bartender": "",
-    "date": ""
-  },
+  "meta": { "venue": "", "event": "", "bartender": "", "date": "" },
   "items": [
-    { "category": "Non-Alcoholic", "productType": "Soda", "brand": "", "name": "Diet Coke", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Soda", "brand": "", "name": "Coke Zero", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Soda", "brand": "", "name": "Sprite", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Mixer", "brand": "Fever-Tree", "name": "Ginger Beer (Fever-Tree)", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Juice", "brand": "Dole", "name": "Pineapple Juice (Dole)", "unit": "can", "qty": 0, "notes": "" },
+    {
+      "category": "Beer",
+      "productType": "Beer",
+      "brand": "Miller Lite",
+      "name": "Miller Lite",
+      "primaryUnit": "case",
+      "primaryQty": 0,
+      "secondaryUnit": "can",
+      "secondaryQty": 0,
+      "notes": ""
+    },
+    {
+      "category": "Beer",
+      "productType": "Beer",
+      "brand": "Michelob Ultra",
+      "name": "Michelob Ultra",
+      "primaryUnit": "case",
+      "primaryQty": 0,
+      "secondaryUnit": "can",
+      "secondaryQty": 0,
+      "notes": ""
+    },
+    {
+      "category": "Beer",
+      "productType": "Beer",
+      "brand": "Dos Equis",
+      "name": "Dos Equis",
+      "primaryUnit": "case",
+      "primaryQty": 0,
+      "secondaryUnit": "can",
+      "secondaryQty": 0,
+      "notes": ""
+    },
+    {
+      "category": "Beer",
+      "productType": "Beer",
+      "brand": "Shiner",
+      "name": "Shiner",
+      "primaryUnit": "case",
+      "primaryQty": 0,
+      "secondaryUnit": "can",
+      "secondaryQty": 0,
+      "notes": ""
+    },
 
-    { "category": "Non-Alcoholic", "productType": "Juice", "brand": "Ocean Spray", "name": "Cranberry Juice", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Juice", "brand": "Dole", "name": "Orange Juice", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Mixer", "brand": "", "name": "Tonic Water", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Non-Alcoholic", "productType": "Mixer", "brand": "", "name": "Club Soda", "unit": "can", "qty": 0, "notes": "" },
+    {
+      "category": "Liquor",
+      "productType": "Vodka",
+      "brand": "Ketel One",
+      "name": "Ketel One Vodka",
+      "primaryUnit": "bottle",
+      "primaryQty": 0,
+      "secondaryUnit": "",
+      "secondaryQty": 0,
+      "notes": ""
+    },
+    {
+      "category": "Liquor",
+      "productType": "Vodka",
+      "brand": "Svedka",
+      "name": "Svedka Raspberry Vodka",
+      "primaryUnit": "bottle",
+      "primaryQty": 0,
+      "secondaryUnit": "",
+      "secondaryQty": 0,
+      "notes": ""
+    },
+    {
+      "category": "Liquor",
+      "productType": "Whiskey",
+      "brand": "Jack Daniel's",
+      "name": "Jack Daniel's",
+      "primaryUnit": "bottle",
+      "primaryQty": 0,
+      "secondaryUnit": "",
+      "secondaryQty": 0,
+      "notes": ""
+    },
 
-    { "category": "Beer", "productType": "Beer", "brand": "Miller Lite", "name": "Miller Lite", "unit": "can", "qty": 0, "notes": "Switch unit to case if counting cases." },
-    { "category": "Beer", "productType": "Beer", "brand": "Michelob Ultra", "name": "Michelob Ultra", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Beer", "productType": "Beer", "brand": "Dos Equis", "name": "Dos Equis", "unit": "can", "qty": 0, "notes": "" },
-    { "category": "Beer", "productType": "Beer", "brand": "Shiner", "name": "Shiner", "unit": "case", "qty": 0, "notes": "" },
-    { "category": "Beer", "productType": "Beer", "brand": "Karbach", "name": "Karbach Love Street (18-pack)", "unit": "pack", "qty": 0, "notes": "" },
-    { "category": "Beer", "productType": "Beer", "brand": "Karbach", "name": "Karbach Love Street (Loose)", "unit": "can", "qty": 0, "notes": "" },
-
-    { "category": "Liquor", "productType": "Whiskey", "brand": "Jack Daniel's", "name": "Jack Daniel's", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Liquor", "productType": "Rum", "brand": "Malibu", "name": "Malibu Rum", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Liquor", "productType": "Vodka", "brand": "Svedka", "name": "Svedka Raspberry Vodka", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Liquor", "productType": "Vodka", "brand": "Ketel One", "name": "Ketel One Vodka", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Liquor", "productType": "Gin", "brand": "Bombay Sapphire", "name": "Bombay Sapphire Gin", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Liquor", "productType": "Tequila", "brand": "El Jimador", "name": "El Jimador Tequila Silver", "unit": "bottle", "qty": 0, "notes": "" },
-
-    { "category": "Wine", "productType": "White Wine", "brand": "Ryan Patrick", "name": "Ryan Patrick Pinot Grigio", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Wine", "productType": "White Wine", "brand": "Old Mountain", "name": "Old Mountain Sauvignon Blanc", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Wine", "productType": "Red Wine", "brand": "Old Mountain", "name": "Old Mountain Cabernet Sauvignon", "unit": "bottle", "qty": 0, "notes": "" },
-    { "category": "Wine", "productType": "Red Wine", "brand": "Introvert", "name": "Introvert Pinot Noir", "unit": "bottle", "qty": 0, "notes": "" },
-
-    { "category": "Supplies", "productType": "Cups", "brand": "", "name": "Plastic Cups", "unit": "pack", "qty": 0, "notes": "" },
-    { "category": "Supplies", "productType": "Ice", "brand": "", "name": "Bagged Ice", "unit": "bag", "qty": 0, "notes": "" }
+    {
+      "category": "Wine",
+      "productType": "White Wine",
+      "brand": "Ryan Patrick",
+      "name": "Ryan Patrick Pinot Grigio",
+      "primaryUnit": "bottle",
+      "primaryQty": 0,
+      "secondaryUnit": "",
+      "secondaryQty": 0,
+      "notes": ""
+    }
   ]
 }
