@@ -3,88 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>Venue Inventory Checklist</title>
-
+  <title>Inventory Checklist</title>
   <link rel="stylesheet" href="styles.css" />
+  <!-- Excel Library -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
-<header class="topbar">
+
+<header class="topbar shell">
   <div class="brand">
     <div class="brand__mark">🍸</div>
     <div>
-      <div class="brand__title">Inventory Checklist</div>
-      <div class="brand__subtitle">Auto-save • iPhone-friendly</div>
+      <div class="brand__title">Bar Inventory</div>
+      <div class="brand__subtitle">Live Checklist</div>
     </div>
   </div>
-
   <div class="row">
-    <button class="btn btn--ghost" id="btnSave">Save</button>
-    <button class="btn btn--primary" id="btnReport">Report</button>
+    <button class="btn btn--soft" id="btnSave">Save Progress</button>
+    <button class="btn btn--primary" id="btnReport">View Report</button>
   </div>
 </header>
 
 <main class="shell">
+  <!-- Metadata -->
+  <section class="card">
+    <h2 class="card__title">Event Details</h2>
+    <div class="grid grid--2">
+      <div class="field">
+        <label class="field__label">Venue</label>
+        <input id="venueName" class="input" placeholder="e.g. Main Hall" />
+      </div>
+      <div class="field">
+        <label class="field__label">Event Name</label>
+        <input id="eventName" class="input" placeholder="e.g. Wedding" />
+      </div>
+      <div class="field">
+        <label class="field__label">Staff Name</label>
+        <input id="bartenderName" class="input" placeholder="Who counted?" />
+      </div>
+      <div class="field">
+        <label class="field__label">Date</label>
+        <input id="eventDate" type="date" class="input" />
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="btn btn--ghost" id="btnExportExcel">📊 Download Excel Pivot</button>
+    </div>
+  </section>
 
-<section class="card">
-  <h2 class="card__title">Event Info</h2>
-
-  <div class="grid grid--2">
-    <label class="field">
-      <span class="field__label">Venue</span>
-      <input id="venueName" class="input" placeholder="Venue name" />
-    </label>
-
-    <label class="field">
-      <span class="field__label">Event</span>
-      <input id="eventName" class="input" placeholder="Event name" />
-    </label>
-
-    <label class="field">
-      <span class="field__label">Inventory Completed By</span>
-      <select id="memberSelect" class="input">
-        <option value="">Select member…</option>
-        <option value="Member 1">Member 1</option>
-        <option value="Member 2">Member 2</option>
-        <option value="custom">Other (type name)</option>
-      </select>
-    </label>
-
-    <label class="field" id="customMemberWrap" style="display:none;">
-      <span class="field__label">Custom Name</span>
-      <input id="bartenderName" class="input" placeholder="Full name" />
-    </label>
-
-    <label class="field">
-      <span class="field__label">Date</span>
-      <input id="eventDate" class="input" type="date" />
-    </label>
-  </div>
-
-  <div class="row row--wrap">
-    <button class="btn btn--soft" id="btnLoadTemplate">Load Template</button>
-    <button class="btn btn--soft" id="btnExportExcel">Export Excel</button>
-    <button class="btn btn--soft" id="btnExportPDF">Export PDF</button>
-  </div>
-</section>
-
-<section class="card">
-  <h2 class="card__title">Inventory</h2>
-  <div id="inventoryRoot"></div>
-</section>
-
-<section class="card">
-  <h2 class="card__title">Totals</h2>
-  <div class="grand">
-    <span>Total Cans (All Items)</span>
-    <strong id="grandTotal">0</strong>
-  </div>
-</section>
-
+  <!-- Inventory List -->
+  <section class="card">
+    <h2 class="card__title">Count Items</h2>
+    <div id="inventoryRoot">
+      <!-- Injected by script.js -->
+    </div>
+  </section>
 </main>
 
 <script src="script.js"></script>
 </body>
 </html>
+
