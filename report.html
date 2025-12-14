@@ -4,150 +4,173 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Inventory Report</title>
-
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-      background: #f3f4f6;
-      margin: 0;
-      padding: 16px;
-      color: #111827;
+    /* specific overrides for report view */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
     }
-
-    main {
-      max-width: 900px;
-      margin: 0 auto;
+    .summary-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 15px;
+      border-radius: var(--radius);
     }
-
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 6px 20px rgba(0,0,0,.08);
-    }
-
-    h1 {
-      margin: 0 0 8px 0;
-      font-size: 24px;
-    }
-
-    h2 {
-      margin-top: 0;
-      font-size: 18px;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 6px;
-    }
-
-    .meta p {
-      margin: 4px 0;
-      font-size: 14px;
-    }
-
-    .pill {
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 10px;
-      margin-bottom: 8px;
-      background: #fafafa;
-      font-size: 14px;
-    }
-
-    .total {
-      font-weight: 700;
-      margin-top: 6px;
-    }
-
-    .footer {
-      text-align: center;
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 24px;
+    .summary-tile h3 { font-size: 11px; color: var(--muted); margin: 0; text-transform: uppercase; }
+    .summary-tile div { font-size: 24px; font-weight: 800; margin-top: 5px; color: var(--text); }
+    
+    @media print {
+      .summary-tile { background: white; border: 1px solid #ccc; }
+      .summary-tile div { color: black; }
     }
   </style>
 </head>
-
 <body>
-<main>
 
-  <section class="card">
-    <h1>Inventory Report</h1>
-    <div class="meta" id="meta"></div>
-  </section>
-
-  <section class="card">
-    <h2>Inventory Items</h2>
-    <div id="items"></div>
-  </section>
-
-  <section class="card">
-    <h2>Grand Total</h2>
-    <p><strong>Total cans (all items):</strong> <span id="grand">0</span></p>
-  </section>
-
-  <div class="footer">
-    Generated from Inventory Checklist
+<div class="shell" id="reportRoot">
+  <!-- Header -->
+  <div class="topbar" style="border-bottom:none; margin-bottom:0;">
+    <div class="brand">
+      <div>
+        <div class="brand__title" style="font-size:28px;">Inventory Report</div>
+        <div class="brand__subtitle" id="reportMeta">Loading...</div>
+      </div>
+    </div>
+    <div class="no-print">
+      <button class="btn btn--primary" onclick="window.print()">🖨️ Print to PDF</button>
+    </div>
   </div>
 
-</main>
+  <!-- Summary Tiles -->
+  <div class="summary-bar" id="summaryRoot">
+    <!-- Injected via JS -->
+  </div>
+
+  <!-- Main Table -->
+  <div class="card">
+    <div class="card__title">
+      <span>Consolidated List</span>
+      <span style="font-size:12px; font-weight:400; color:var(--muted)">Grouped by Product</span>
+    </div>
+    
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th style="width:10%; text-align:right;">Qty</th>
+          <th style="width:15%">Unit Type</th>
+          <th style="width:30%">Product Name</th>
+          <th style="width:25%">Product Type</th>
+          <th style="width:20%">Alc / Non-Alc</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- Rows Injected JS -->
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <script>
-  /* ===============================
-     STORAGE KEY — MUST MATCH script.js
-  ================================ */
-  const STORE_KEY = "inventory_state_LOCKED_MAIN";
+  // Simplified logic specifically for the Report View
+  const STORE_KEY = "inventory_state_v2";
+  const state = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
 
-  function safeJsonParse(v) {
-    try { return JSON.parse(v); } catch { return null; }
-  }
-
-  function totalCans(i) {
-    if (i.primaryUnit === "case") {
-      return (Number(i.primaryQty) || 0) * (Number(i.caseSize) || 0)
-        + (Number(i.secondaryQty) || 0);
-    }
-    return Number(i.primaryQty) || 0;
-  }
-
-  const state = safeJsonParse(localStorage.getItem(STORE_KEY));
-
-  const metaEl = document.getElementById("meta");
-  const itemsEl = document.getElementById("items");
-  const grandEl = document.getElementById("grand");
-
-  if (!state || !Array.isArray(state.items)) {
-    itemsEl.innerHTML =
-      "<p>No inventory found. Please return to the checklist and press <strong>Save</strong>.</p>";
+  if (!state.items) {
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="5" style="padding:20px; text-align:center;">No data found. Please save inventory first.</td></tr>';
   } else {
-    /* -------- META -------- */
-    metaEl.innerHTML = `
-      <p><strong>Venue:</strong> ${state.meta?.venue || ""}</p>
-      <p><strong>Event:</strong> ${state.meta?.event || ""}</p>
-      <p><strong>Inventory completed by:</strong> ${state.meta?.completedBy || state.meta?.bartender || ""}</p>
-      <p><strong>Date:</strong> ${state.meta?.date || ""}</p>
+    
+    // 1. Meta Data
+    const d = state.meta.date || "No Date";
+    const v = state.meta.venue || "Unknown Venue";
+    const b = state.meta.bartender || "Staff";
+    document.getElementById('reportMeta').textContent = `${d} • ${v} • Counted by: ${b}`;
+
+    // 2. Summary Stats
+    const totalItems = state.items.reduce((a, b) => a + (b.primaryQty||0) + (b.secondaryQty||0), 0);
+    const totalSKUs = state.items.length;
+    // Simple logic: if category is Beer/Wine/Spirits => Alc
+    const alcCount = state.items.filter(i => ['Beer','Wine','Spirits'].includes(i.category))
+                         .reduce((a,b) => a + (b.primaryQty||0) + (b.secondaryQty||0), 0);
+    
+    const summaryHtml = `
+      <div class="summary-tile"><h3>Total Units</h3><div>${totalItems}</div></div>
+      <div class="summary-tile"><h3>Total SKUs</h3><div>${totalSKUs}</div></div>
+      <div class="summary-tile"><h3>Alcoholic Units</h3><div>${alcCount}</div></div>
+      <div class="summary-tile"><h3>Venue</h3><div style="font-size:18px">${v}</div></div>
     `;
+    document.getElementById('summaryRoot').innerHTML = summaryHtml;
 
-    /* -------- ITEMS -------- */
-    let grand = 0;
+    // 3. Render Table with Grouping
+    const tbody = document.getElementById('tableBody');
+    
+    // Sort by Category then Name
+    const sorted = state.items.sort((a,b) => {
+      if(a.category !== b.category) return a.category.localeCompare(b.category);
+      return a.name.localeCompare(b.name);
+    });
 
-    itemsEl.innerHTML = state.items.map(i => {
-      const total = totalCans(i);
-      grand += total;
+    sorted.forEach(item => {
+      // Determine rows needed (Primary + Secondary)
+      const rows = [];
+      const type = item.category;
+      const isAlc = ['Beer','Wine','Spirits'].includes(type);
+      const isSupplies = type === 'Supplies';
+      
+      const alcBadge = isSupplies ? '-' : (isAlc 
+        ? '<span class="badge badge--alc">Alcoholic</span>' 
+        : '<span class="badge badge--na">Non-Alc</span>');
 
-      return `
-        <div class="pill">
-          <strong>${i.name || "Unnamed Item"}</strong><br/>
-          ${i.primaryQty || 0} ${i.primaryUnit || ""}
-          ${i.primaryUnit === "case" ? ` @ ${i.caseSize || 0}/case` : ""}<br/>
-          ${i.secondaryQty || 0} ${i.secondaryUnit || ""}<br/>
-          <div class="total">Total cans: ${total}</div>
-        </div>
-      `;
-    }).join("");
+      // Primary Row
+      if(item.primaryUnit) {
+        rows.push({
+          qty: item.primaryQty || 0,
+          unit: item.caseSize > 0 ? `${item.primaryUnit} (${item.caseSize})` : item.primaryUnit,
+          name: item.name,
+          type: type,
+          badge: alcBadge
+        });
+      }
 
-    grandEl.textContent = grand;
+      // Secondary Row (e.g. Loose Cans)
+      if(item.secondaryUnit) {
+         rows.push({
+          qty: item.secondaryQty || 0,
+          unit: item.secondaryUnit + " (Loose)",
+          name: item.name, // Same name, visually grouped
+          type: type,
+          badge: alcBadge
+        });
+      }
+
+      // Create a TBODY for this item to group borders
+      // We only render if there is at least one quantity > 0 OR if we want to show full list (showing full list is better for reports)
+      if (rows.length > 0) {
+        const itemGroup = document.createElement('tbody');
+        itemGroup.className = 'group-tbody';
+        
+        rows.forEach(r => {
+           // Highlight row if quantity > 0
+           const colorStyle = r.qty > 0 ? 'font-weight:700;' : 'color:var(--muted); opacity:0.7;';
+           
+           itemGroup.innerHTML += `
+             <tr>
+               <td style="text-align:right; ${colorStyle}">${r.qty}</td>
+               <td style="${colorStyle}">${r.unit}</td>
+               <td style="font-weight:600">${r.name}</td>
+               <td>${r.type}</td>
+               <td>${r.badge}</td>
+             </tr>
+           `;
+        });
+        tbody.appendChild(itemGroup);
+      }
+    });
   }
 </script>
-
 </body>
 </html>
+
