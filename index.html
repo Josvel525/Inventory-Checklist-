@@ -6,162 +6,85 @@
   <meta name="theme-color" content="#0b1220" />
   <title>Venue Inventory Checklist</title>
 
-  <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
-
-  <!-- Excel Export Library -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand__mark">🍸</div>
-      <div class="brand__text">
-        <div class="brand__title">Inventory Checklist</div>
-        <div class="brand__subtitle">Auto-save • iPhone-friendly • Print-ready</div>
-      </div>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand__mark">🍸</div>
+    <div>
+      <div class="brand__title">Inventory Checklist</div>
+      <div class="brand__subtitle">Auto-save • iPhone-friendly</div>
     </div>
+  </div>
 
-    <div class="row">
-      <button class="btn btn--ghost" id="btnReset" type="button">Reset</button>
-      <button class="btn btn--primary" id="btnReport" type="button">Report</button>
-    </div>
-  </header>
+  <div class="row">
+    <button class="btn btn--ghost" id="btnSave">Save</button>
+    <button class="btn btn--primary" id="btnReport">Report</button>
+  </div>
+</header>
 
-  <main class="shell">
+<main class="shell">
 
-    <!-- EVENT INFO -->
-    <section class="card">
-      <h2 class="card__title">Event Info</h2>
+<section class="card">
+  <h2 class="card__title">Event Info</h2>
 
-      <div class="grid grid--2">
-        <label class="field">
-          <span class="field__label">Venue</span>
-          <input id="venueName" class="input" type="text" placeholder="e.g., Venue Name" />
-        </label>
+  <div class="grid grid--2">
+    <label class="field">
+      <span class="field__label">Venue</span>
+      <input id="venueName" class="input" placeholder="Venue name" />
+    </label>
 
-        <label class="field">
-          <span class="field__label">Event Name</span>
-          <input id="eventName" class="input" type="text" placeholder="e.g., Holiday Party" />
-        </label>
+    <label class="field">
+      <span class="field__label">Event</span>
+      <input id="eventName" class="input" placeholder="Event name" />
+    </label>
 
-        <label class="field">
-          <span class="field__label">Bartender Name (Required)</span>
-          <input id="bartenderName" class="input" type="text" placeholder="Who completed inventory" />
-        </label>
+    <label class="field">
+      <span class="field__label">Inventory Completed By</span>
+      <select id="memberSelect" class="input">
+        <option value="">Select member…</option>
+        <option value="Member 1">Member 1</option>
+        <option value="Member 2">Member 2</option>
+        <option value="custom">Other (type name)</option>
+      </select>
+    </label>
 
-        <label class="field">
-          <span class="field__label">Date</span>
-          <input id="eventDate" class="input" type="date" />
-        </label>
-      </div>
+    <label class="field" id="customMemberWrap" style="display:none;">
+      <span class="field__label">Custom Name</span>
+      <input id="bartenderName" class="input" placeholder="Full name" />
+    </label>
 
-      <div class="row row--wrap">
-        <button class="btn btn--soft" id="btnLoadTemplate" type="button">Load Template</button>
-        <button class="btn btn--soft" id="btnAddItem" type="button">+ Add Item</button>
-        <button class="btn btn--soft" id="btnExportJSON" type="button">Export JSON</button>
-      </div>
+    <label class="field">
+      <span class="field__label">Date</span>
+      <input id="eventDate" class="input" type="date" />
+    </label>
+  </div>
 
-      <p class="hint">Everything auto-saves on your phone. Exports require a bartender name.</p>
-    </section>
+  <div class="row row--wrap">
+    <button class="btn btn--soft" id="btnLoadTemplate">Load Template</button>
+    <button class="btn btn--soft" id="btnExportExcel">Export Excel</button>
+    <button class="btn btn--soft" id="btnExportPDF">Export PDF</button>
+  </div>
+</section>
 
-    <!-- INVENTORY -->
-    <section class="card">
-      <div class="card__head">
-        <h2 class="card__title">Inventory</h2>
-        <div class="search">
-          <input id="search" class="input" type="search" placeholder="Search items (brand, product, category)..." />
-        </div>
-      </div>
+<section class="card">
+  <h2 class="card__title">Inventory</h2>
+  <div id="inventoryRoot"></div>
+</section>
 
-      <div id="inventoryRoot" class="inventory"></div>
-    </section>
+<section class="card">
+  <h2 class="card__title">Totals</h2>
+  <div class="grand">
+    <span>Total Cans (All Items)</span>
+    <strong id="grandTotal">0</strong>
+  </div>
+</section>
 
-    <!-- TOTALS / EXPORT -->
-    <section class="card card--summary">
-      <h2 class="card__title">Totals</h2>
+</main>
 
-      <div id="totalsRoot" class="totals"></div>
-
-      <div class="grand">
-        <div class="grand__label">Grand Total (all quantities)</div>
-        <div class="grand__value" id="grandTotal">0</div>
-      </div>
-
-      <div class="row row--wrap">
-        <button class="btn btn--primary" id="btnSave" type="button">Save Now</button>
-        <button class="btn btn--soft" id="btnExportExcel" type="button">Export Excel</button>
-        <button class="btn btn--soft" id="btnExportPDF" type="button">Export PDF</button>
-        <button class="btn btn--ghost" id="btnClearSearch" type="button">Clear Search</button>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <div class="footer__text">Designed for fast inventory in venues (iPhone-first).</div>
-    </footer>
-  </main>
-
-  <!-- ADD ITEM MODAL -->
-  <dialog class="modal" id="modalAddItem">
-    <form method="dialog" class="modal__card" id="addItemForm">
-      <div class="modal__head">
-        <h3 class="modal__title">Add New Item</h3>
-        <button class="iconbtn" value="cancel" aria-label="Close">✕</button>
-      </div>
-
-      <div class="grid grid--2">
-        <label class="field">
-          <span class="field__label">Category</span>
-          <input id="newCategory" class="input" type="text" placeholder="Liquor / Beer / Wine / NA / Supplies" required />
-        </label>
-
-        <label class="field">
-          <span class="field__label">Product Type</span>
-          <input id="newProductType" class="input" type="text" placeholder="Vodka / Lager / Cups / etc." />
-        </label>
-
-        <label class="field">
-          <span class="field__label">Brand</span>
-          <input id="newBrand" class="input" type="text" placeholder="Brand (optional)" />
-        </label>
-
-        <label class="field">
-          <span class="field__label">Item Name</span>
-          <input id="newName" class="input" type="text" placeholder="Item name" required />
-        </label>
-
-        <label class="field">
-          <span class="field__label">Unit Type</span>
-          <select id="newUnit" class="input">
-            <option value="bottle">bottle</option>
-            <option value="can">can</option>
-            <option value="case">case</option>
-            <option value="pack">pack</option>
-            <option value="box">box</option>
-            <option value="bag">bag</option>
-            <option value="each">each</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span class="field__label">Starting Qty</span>
-          <input id="newQty" class="input" type="number" inputmode="numeric" min="0" step="1" value="0" />
-        </label>
-      </div>
-
-      <label class="field">
-        <span class="field__label">Notes</span>
-        <input id="newNotes" class="input" type="text" placeholder="Optional notes..." />
-      </label>
-
-      <div class="modal__actions">
-        <button class="btn btn--ghost" id="btnCancelAdd" type="button" value="cancel">Cancel</button>
-        <button class="btn btn--primary" type="submit" value="default">Add Item</button>
-      </div>
-    </form>
-  </dialog>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
