@@ -1,14 +1,42 @@
 (() => {
-  const STORE_KEY = "venue_inventory_v5";
-  const TEMPLATE_URL = "data.json";
-  const CASE_OPTIONS = [12, 18, 24, 30, 36];
+  /* ===============================
+     STORAGE (STABLE + MIGRATION)
+  ================================ */
+  const STORE_KEY = "venue_inventory_main";
+  const LEGACY_KEYS = [
+    "venue_inventory_v1",
+    "venue_inventory_v2",
+    "venue_inventory_v3",
+    "venue_inventory_v4",
+    "venue_inventory_v5"
+  ];
 
+  function migrateLegacyInventory() {
+    if (localStorage.getItem(STORE_KEY)) return;
+
+    for (const key of LEGACY_KEYS) {
+      const legacy = localStorage.getItem(key);
+      if (legacy) {
+        localStorage.setItem(STORE_KEY, legacy);
+        console.warn(`Migrated inventory from ${key}`);
+        break;
+      }
+    }
+  }
+
+  /* ===============================
+     HELPERS
+  ================================ */
   const $ = id => document.getElementById(id);
+  const today = () => new Date().toISOString().split("T")[0];
+  const uid = () => Math.random().toString(36).slice(2);
 
   const els = {
     venue: $("venueName"),
     event: $("eventName"),
+    memberSelect: $("memberSelect"),
     bartender: $("bartenderName"),
+    customWrap: $("customMemberWrap"),
     date: $("eventDate"),
 
     inventory: $("inventoryRoot"),
@@ -16,21 +44,23 @@
 
     btnLoadTemplate: $("btnLoadTemplate"),
     btnSave: $("btnSave"),
+    btnReport: $("btnReport"),
     btnExportExcel: $("btnExportExcel"),
-    btnExportPDF: $("btnExportPDF"),
-    btnReport: $("btnReport")
+    btnExportPDF: $("btnExportPDF")
   };
 
-  const uid = () => Math.random().toString(36).slice(2);
-  const today = () => new Date().toISOString().split("T")[0];
+  migrateLegacyInventory();
 
+  /* ===============================
+     STATE
+  ================================ */
   const getState = () => JSON.parse(localStorage.getItem(STORE_KEY));
   const setState = s => localStorage.setItem(STORE_KEY, JSON.stringify(s));
 
   function ensureState() {
     let s = getState();
     if (!s) {
-      s = { meta: { venue: "", event: "", bartender: "", date: today() }, items: [] };
+      s = { meta: { venue:"", event:"", bartender:"", date:today() }, items: [] };
       setState(s);
     }
     return s;
@@ -39,105 +69,47 @@
   function syncMeta(s) {
     s.meta.venue = els.venue.value.trim();
     s.meta.event = els.event.value.trim();
-    s.meta.bartender = els.bartender.value.trim();
     s.meta.date = els.date.value || today();
+
+    if (els.memberSelect.value === "custom") {
+      s.meta.bartender = els.bartender.value.trim();
+    } else {
+      s.meta.bartender = els.memberSelect.value;
+    }
   }
 
   function requireBartender(s) {
     if (!s.meta.bartender) {
-      alert("Bartender name is required before exporting.");
+      alert("Please select who completed the inventory.");
       return false;
     }
     return true;
   }
 
-  function normalize(i) {
-    return {
-      id: i.id || uid(),
-      category: i.category,
-      productType: i.productType || "",
-      brand: i.brand || "",
-      name: i.name,
-      primaryUnit: i.primaryUnit,
-      caseSize: i.caseSize || 24,
-      primaryQty: Number(i.primaryQty || 0),
-      secondaryUnit: i.secondaryUnit || "",
-      secondaryQty: Number(i.secondaryQty || 0),
-      notes: i.notes || ""
-    };
-  }
-
-  function totalCans(it) {
-    if (it.primaryUnit === "case") {
-      return (it.primaryQty * it.caseSize) + it.secondaryQty;
-    }
-    return it.primaryQty;
-  }
-
-  function persistAndRender() {
-    const s = ensureState();
-    syncMeta(s);
-    s.items = s.items.map(normalize);
-    setState(s);
-    render();
+  /* ===============================
+     INVENTORY
+  ================================ */
+  function totalCans(i) {
+    return (i.primaryQty * (i.caseSize || 0)) + i.secondaryQty;
   }
 
   function render() {
     const s = ensureState();
+    syncMeta(s);
+    setState(s);
+
     let grand = 0;
 
-    els.inventory.innerHTML = s.items.map(it => {
-      const total = totalCans(it);
+    els.inventory.innerHTML = s.items.map(i => {
+      const total = totalCans(i);
       grand += total;
 
-      const caseDropdown = it.primaryUnit === "case"
-        ? `
-          <label class="field">
-            <span class="field__label">Cans per case</span>
-            <select data-role="caseSize" class="input">
-              ${CASE_OPTIONS.map(n =>
-                `<option value="${n}" ${n === it.caseSize ? "selected" : ""}>${n}</option>`
-              ).join("")}
-            </select>
-          </label>
-        `
-        : "";
-
       return `
-        <div class="item" data-id="${it.id}">
-          <div class="itemTop">
-            <div>
-              <div class="itemName">${it.name}</div>
-              <div class="itemMeta">${it.brand} • ${it.productType}</div>
-            </div>
-            <button class="iconbtn" data-action="delete">🗑️</button>
-          </div>
-
-          <div class="dual-qty">
-            <div class="qty-group">
-              <button data-action="dec-primary">−</button>
-              <span>${it.primaryQty}</span>
-              <button data-action="inc-primary">+</button>
-              <small>${it.primaryUnit}</small>
-            </div>
-
-            ${it.secondaryUnit ? `
-              <div class="qty-group">
-                <button data-action="dec-secondary">−</button>
-                <span>${it.secondaryQty}</span>
-                <button data-action="inc-secondary">+</button>
-                <small>${it.secondaryUnit}</small>
-              </div>
-            ` : ""}
-          </div>
-
-          ${caseDropdown}
-
-          ${it.primaryUnit === "case" ? `
-            <div class="pill" style="margin-top:6px;">
-              Total cans in stock: <strong>${total}</strong>
-            </div>
-          ` : ""}
+        <div class="pill">
+          <strong>${i.name}</strong><br/>
+          ${i.primaryQty} cases @ ${i.caseSize}/case +
+          ${i.secondaryQty} loose cans<br/>
+          <strong>Total cans:</strong> ${total}
         </div>
       `;
     }).join("");
@@ -145,71 +117,35 @@
     els.grand.textContent = grand;
   }
 
-  function updateItem(id, patch) {
-    const s = ensureState();
-    const i = s.items.find(x => x.id === id);
-    if (!i) return;
-    Object.assign(i, patch);
-    setState(s);
-    render();
-  }
-
-  els.inventory.addEventListener("click", e => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-
-    const itemEl = btn.closest(".item");
-    const id = itemEl.dataset.id;
-    const s = ensureState();
-    const it = s.items.find(x => x.id === id);
-    if (!it) return;
-
-    const a = btn.dataset.action;
-
-    if (a === "inc-primary") updateItem(id, { primaryQty: it.primaryQty + 1 });
-    if (a === "dec-primary") updateItem(id, { primaryQty: Math.max(0, it.primaryQty - 1) });
-    if (a === "inc-secondary") updateItem(id, { secondaryQty: it.secondaryQty + 1 });
-    if (a === "dec-secondary") updateItem(id, { secondaryQty: Math.max(0, it.secondaryQty - 1) });
-
-    if (a === "delete" && confirm(`Delete ${it.name}?`)) {
-      s.items = s.items.filter(x => x.id !== id);
-      setState(s);
-      render();
-    }
+  /* ===============================
+     EVENTS
+  ================================ */
+  els.memberSelect.addEventListener("change", () => {
+    els.customWrap.style.display =
+      els.memberSelect.value === "custom" ? "block" : "none";
   });
 
-  els.inventory.addEventListener("change", e => {
-    if (e.target.matches('[data-role="caseSize"]')) {
-      const itemEl = e.target.closest(".item");
-      updateItem(itemEl.dataset.id, { caseSize: Number(e.target.value) });
-    }
-  });
-
-  els.btnLoadTemplate.onclick = async () => {
-    if (!confirm("Load default template? This replaces current items.")) return;
+  els.btnSave.onclick = () => {
     const s = ensureState();
     syncMeta(s);
-    const r = await fetch(TEMPLATE_URL);
-    const j = await r.json();
-    s.items = j.items.map(normalize);
     setState(s);
-    render();
+    alert("Saved successfully");
   };
 
-  els.btnSave.onclick = persistAndRender;
-
-  els.btnExportPDF.onclick = () => {
-    persistAndRender();
+  els.btnReport.onclick = () => {
     const s = ensureState();
+    syncMeta(s);
+    setState(s);
     if (!requireBartender(s)) return;
     window.open("report.html", "_blank");
   };
 
-  els.btnReport.onclick = els.btnExportPDF;
+  els.btnExportPDF.onclick = els.btnReport;
 
   els.btnExportExcel.onclick = () => {
-    persistAndRender();
     const s = ensureState();
+    syncMeta(s);
+    setState(s);
     if (!requireBartender(s)) return;
 
     const rows = [
@@ -219,8 +155,8 @@
     s.items.forEach(i => {
       rows.push([
         i.name,
-        i.primaryUnit === "case" ? i.primaryQty : "",
-        i.primaryUnit === "case" ? i.caseSize : "",
+        i.primaryQty,
+        i.caseSize,
         i.secondaryQty,
         totalCans(i)
       ]);
@@ -232,5 +168,5 @@
     XLSX.writeFile(wb, `Inventory_${s.meta.date}.xlsx`);
   };
 
-  persistAndRender();
+  render();
 })();
