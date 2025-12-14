@@ -1,5 +1,5 @@
 (() => {
-  const STORE_KEY = "venue_inventory_v4";
+  const STORE_KEY = "venue_inventory_v5";
   const TEMPLATE_URL = "data.json";
   const CASE_OPTIONS = [12, 18, 24, 30, 36];
 
@@ -45,7 +45,7 @@
 
   function requireBartender(s) {
     if (!s.meta.bartender) {
-      alert("Bartender name is required before export.");
+      alert("Bartender name is required before exporting.");
       return false;
     }
     return true;
@@ -67,16 +67,28 @@
     };
   }
 
-  function render() {
+  function totalCans(it) {
+    if (it.primaryUnit === "case") {
+      return (it.primaryQty * it.caseSize) + it.secondaryQty;
+    }
+    return it.primaryQty;
+  }
+
+  function persistAndRender() {
     const s = ensureState();
     syncMeta(s);
     s.items = s.items.map(normalize);
     setState(s);
+    render();
+  }
 
+  function render() {
+    const s = ensureState();
     let grand = 0;
 
     els.inventory.innerHTML = s.items.map(it => {
-      grand += it.primaryQty + it.secondaryQty;
+      const total = totalCans(it);
+      grand += total;
 
       const caseDropdown = it.primaryUnit === "case"
         ? `
@@ -120,6 +132,12 @@
           </div>
 
           ${caseDropdown}
+
+          ${it.primaryUnit === "case" ? `
+            <div class="pill" style="margin-top:6px;">
+              Total cans in stock: <strong>${total}</strong>
+            </div>
+          ` : ""}
         </div>
       `;
     }).join("");
@@ -178,16 +196,11 @@
     render();
   };
 
-  els.btnSave.onclick = () => {
-    const s = ensureState();
-    syncMeta(s);
-    setState(s);
-    alert("Saved");
-  };
+  els.btnSave.onclick = persistAndRender;
 
   els.btnExportPDF.onclick = () => {
+    persistAndRender();
     const s = ensureState();
-    syncMeta(s);
     if (!requireBartender(s)) return;
     window.open("report.html", "_blank");
   };
@@ -195,12 +208,12 @@
   els.btnReport.onclick = els.btnExportPDF;
 
   els.btnExportExcel.onclick = () => {
+    persistAndRender();
     const s = ensureState();
-    syncMeta(s);
     if (!requireBartender(s)) return;
 
     const rows = [
-      ["Item", "Cases", "Cans/Case", "Loose Cans"]
+      ["Item", "Cases", "Cans/Case", "Loose Cans", "Total Cans"]
     ];
 
     s.items.forEach(i => {
@@ -208,7 +221,8 @@
         i.name,
         i.primaryUnit === "case" ? i.primaryQty : "",
         i.primaryUnit === "case" ? i.caseSize : "",
-        i.secondaryQty
+        i.secondaryQty,
+        totalCans(i)
       ]);
     });
 
@@ -218,5 +232,5 @@
     XLSX.writeFile(wb, `Inventory_${s.meta.date}.xlsx`);
   };
 
-  render();
+  persistAndRender();
 })();
