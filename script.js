@@ -1,413 +1,244 @@
 (() => {
   // =========================
-  // Inventory Checklist - Hardened Runtime
-  // Works even if IDs change.
+  // Inventory App Logic
   // =========================
 
-  const STORE_KEY = "inventory_state_LOCKED_MAIN"; // DO NOT CHANGE AGAIN
-  const CASE_SIZES = [12, 18, 24, 30, 36];
-
-  // Default items (replace/expand anytime)
+  const STORE_KEY = "inventory_state_v2"; 
+  
+  // 1. DATA CONFIGURATION (Matched to your CSV)
   const DEFAULT_ITEMS = [
-    { name: "Miller Lite", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
-    { name: "Michelob Ultra", primaryUnit: "case", caseSize: 30, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
-    { name: "Dos Equis", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
-    { name: "Shiner", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
-
-    { name: "Jack Daniel's", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
-    { name: "Malibu Rum", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
-    { name: "Ketel One Vodka", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false }
+    // Beer
+    { category: "Beer", name: "Miller Lite", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
+    { category: "Beer", name: "Dos Equis", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
+    { category: "Beer", name: "Michelob Ultra", primaryUnit: "case", caseSize: 30, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
+    { category: "Beer", name: "Modelo", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
+    { category: "Beer", name: "Crawford Bock", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Beer", name: "Shiner", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
+    { category: "Beer", name: "Karbach Love St", primaryUnit: "pack", caseSize: 18, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
+    
+    // Non-Alcoholic
+    { category: "Non-Alcoholic", name: "Diet Coke", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Non-Alcoholic", name: "Coke Zero", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Non-Alcoholic", name: "Sprite", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Non-Alcoholic", name: "Topo Chico", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    
+    // Wine
+    { category: "Wine", name: "Pinot Grigio (Ryan P)", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Wine", name: "Sauv Blanc (Old Mtn)", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Wine", name: "Cab Sauv (Old Mtn)", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    
+    // Spirits
+    { category: "Spirits", name: "Jack Daniel's", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Spirits", name: "Tito's Vodka", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Spirits", name: "Bombay Sapphire", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Spirits", name: "Bacardi Superior", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    
+    // Supplies
+    { category: "Supplies", name: "Ice Bags", primaryUnit: "bag", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
+    { category: "Supplies", name: "Cup Stacks", primaryUnit: "stack", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 }
   ];
 
-  // ---------- helpers ----------
-  const qs = (sel, root = document) => root.querySelector(sel);
-  const qsa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  // 2. STATE MANAGEMENT
+  let state = {
+    meta: { venue: "", event: "", date: new Date().toISOString().split('T')[0], bartender: "" },
+    items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
+  };
 
-  function findButtonByText(text) {
-    const btns = qsa("button");
-    return btns.find(b => (b.textContent || "").trim().toLowerCase() === text.toLowerCase());
-  }
-
-  function safeJsonParse(v) {
-    try { return JSON.parse(v); } catch { return null; }
-  }
-
-  function getState() {
-    return safeJsonParse(localStorage.getItem(STORE_KEY));
-  }
-
-  function setState(s) {
-    localStorage.setItem(STORE_KEY, JSON.stringify(s));
-  }
-
-  function ensureState() {
-    let s = getState();
-    if (!s || !Array.isArray(s.items)) {
-      s = {
-        meta: { venue: "", event: "", completedBy: "", date: "" },
-        items: DEFAULT_ITEMS.map(x => ({ ...x }))
-      };
-      setState(s);
-      status(`Initialized default inventory (${s.items.length} items).`);
+  const loadState = () => {
+    const s = localStorage.getItem(STORE_KEY);
+    if (s) {
+      try {
+        const parsed = JSON.parse(s);
+        // Merge saved items with default items to ensure structure exists
+        state = { ...state, ...parsed };
+        // If stored items list is shorter than default (new items added), merge them
+        if (state.items.length < DEFAULT_ITEMS.length) {
+            // Simple merge strategy: add missing by name
+            DEFAULT_ITEMS.forEach(d => {
+                if(!state.items.find(i => i.name === d.name)) state.items.push(d);
+            })
+        }
+      } catch (e) { console.error("Save file corrupted", e); }
     }
-    return s;
-  }
+  };
 
-  function normalizeItem(i) {
-    return {
-      name: String(i.name || "Unnamed Item"),
-      primaryUnit: i.primaryUnit || "each",
-      caseSize: Number.isFinite(+i.caseSize) ? +i.caseSize : 24,
-      primaryQty: Number.isFinite(+i.primaryQty) ? +i.primaryQty : 0,
-      secondaryUnit: i.secondaryUnit || "",
-      secondaryQty: Number.isFinite(+i.secondaryQty) ? +i.secondaryQty : 0,
-      completed: !!i.completed
-    };
-  }
+  const saveState = () => {
+    // Sync UI inputs to state before saving
+    state.meta.venue = document.getElementById('venueName')?.value || "";
+    state.meta.event = document.getElementById('eventName')?.value || "";
+    state.meta.date = document.getElementById('eventDate')?.value || "";
+    state.meta.bartender = document.getElementById('bartenderName')?.value || "";
+    
+    // Items are live-updated in 'input' events, but let's be safe
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    showToast("Progress Saved!");
+  };
 
-  function totalCans(i) {
-    if (i.primaryUnit === "case") return (i.primaryQty * (i.caseSize || 0)) + (i.secondaryQty || 0);
-    // for non-case items, treat primaryQty as “each”
-    return i.primaryQty || 0;
-  }
+  // 3. UI RENDERING
+  const render = () => {
+    // Fill Meta
+    if(document.getElementById('venueName')) document.getElementById('venueName').value = state.meta.venue;
+    if(document.getElementById('eventName')) document.getElementById('eventName').value = state.meta.event;
+    if(document.getElementById('eventDate')) document.getElementById('eventDate').value = state.meta.date;
+    if(document.getElementById('bartenderName')) document.getElementById('bartenderName').value = state.meta.bartender;
 
-  // ---------- UI wiring (robust) ----------
-  // Try your known IDs first (from your UI), otherwise fallback by structure/text.
-  const elVenue = qs("#venueName") || qs('input[placeholder*="Venue"]') || null;
-  const elEvent = qs("#eventName") || qs('input[placeholder*="Event"]') || null;
-  const elDate = qs("#eventDate") || qs('input[type="date"]') || null;
+    const root = document.getElementById('inventoryRoot');
+    if (!root) return; // We might be on report page
 
-  // Completed by: you said you want editable (NOT stuck at “Member”)
-  // If you have a select + custom input, we use it. If not, we create one.
-  const memberSelect = qs("#memberSelect");
-  const customNameInput = qs("#bartenderName");
-  const customWrap = qs("#customMemberWrap");
+    root.innerHTML = '';
+    
+    // Group by Category
+    const grouped = state.items.reduce((acc, item) => {
+      acc[item.category] = acc[item.category] || [];
+      acc[item.category].push(item);
+      return acc;
+    }, {});
 
-  // Inventory container: your page shows an “Inventory” section; we try common IDs; else fallback to the section after the “Inventory” heading.
-  let inventoryRoot = qs("#inventoryRoot");
-  if (!inventoryRoot) {
-    // fallback: find the heading containing "Inventory" then next element
-    const headings = qsa("h1,h2,h3,header,section");
-    const invMarker = headings.find(h => (h.textContent || "").toLowerCase().includes("inventory"));
-    if (invMarker) {
-      // try next sibling container
-      inventoryRoot = invMarker.nextElementSibling || invMarker.parentElement;
-    }
-  }
-  if (!inventoryRoot) {
-    // final fallback: create at bottom
-    inventoryRoot = document.createElement("div");
-    document.body.appendChild(inventoryRoot);
-  }
+    Object.keys(grouped).forEach(cat => {
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'inv-group';
+      groupDiv.innerHTML = `<div class="inv-group__header">${cat}</div>`;
+      
+      grouped[cat].forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'inv-item';
+        
+        // Check if secondary unit exists
+        const hasSecondary = item.secondaryUnit && item.secondaryUnit !== "";
 
-  const grandTotalEl = qs("#grandTotal") || qs("[data-grand-total]") || null;
-
-  const btnSave = qs("#btnSave") || findButtonByText("Save") || null;
-  const btnExportExcel = qs("#btnExportExcel") || findButtonByText("Export Excel") || null;
-  const btnExportPDF = qs("#btnExportPDF") || findButtonByText("Export PDF") || null;
-  const btnLoadTemplate = qs("#btnLoadTemplate") || findButtonByText("Load Template") || null;
-  const btnReport = qs("#btnReport") || findButtonByText("Report") || null;
-
-  // Status line (visible)
-  const statusBar = document.createElement("div");
-  statusBar.style.cssText = "position:sticky;top:0;z-index:9999;background:#111827;color:#fff;padding:8px 10px;font:14px system-ui;opacity:.92";
-  statusBar.textContent = "Inventory script loaded.";
-  document.body.prepend(statusBar);
-
-  function status(msg) {
-    statusBar.textContent = msg;
-    console.log("[Inventory]", msg);
-  }
-
-  // Create Pending/Completed sections INSIDE inventoryRoot (so we don't depend on your HTML having them)
-  const shell = document.createElement("div");
-  shell.innerHTML = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;">
-      <div style="flex:1;min-width:280px;">
-        <h3 style="margin:6px 0;">Pending</h3>
-        <div id="__pending"></div>
-      </div>
-      <div style="flex:1;min-width:280px;">
-        <h3 style="margin:6px 0;">Completed</h3>
-        <div id="__completed"></div>
-      </div>
-    </div>
-  `;
-  inventoryRoot.innerHTML = ""; // replace whatever was there (it was empty anyway)
-  inventoryRoot.appendChild(shell);
-
-  const pendingEl = qs("#__pending", shell);
-  const completedEl = qs("#__completed", shell);
-
-  // Editable completed-by field if your current UI is select-only or missing
-  let completedByInput = qs("#completedBy");
-  if (!completedByInput) {
-    completedByInput = document.createElement("input");
-    completedByInput.type = "text";
-    completedByInput.placeholder = "Inventory completed by (full name)";
-    completedByInput.style.cssText = "width:100%;max-width:520px;padding:10px;border:1px solid #ddd;border-radius:10px;margin:8px 0;";
-    // put it near top (after status bar)
-    statusBar.insertAdjacentElement("afterend", completedByInput);
-  }
-
-  function readCompletedBy() {
-    // If your page has memberSelect/custom, we respect it. Otherwise we use the input we created.
-    if (memberSelect) {
-      const v = memberSelect.value || "";
-      if (v === "custom") return (customNameInput?.value || "").trim();
-      return v.trim();
-    }
-    return (completedByInput.value || "").trim();
-  }
-
-  function syncMetaToState(s) {
-    s.meta.venue = (elVenue?.value || "").trim();
-    s.meta.event = (elEvent?.value || "").trim();
-    s.meta.date = (elDate?.value || "").trim();
-    s.meta.completedBy = readCompletedBy();
-  }
-
-  function render() {
-    const s = ensureState();
-    // Normalize defensively (never drop items)
-    s.items = s.items.map(normalizeItem);
-    setState(s);
-
-    pendingEl.innerHTML = "";
-    completedEl.innerHTML = "";
-
-    let grand = 0;
-
-    s.items.forEach((i, idx) => {
-      const total = totalCans(i);
-      grand += total;
-
-      const card = document.createElement("div");
-      card.style.cssText = "border:1px solid #e5e7eb;border-radius:14px;padding:10px;margin:8px 0;background:#fff";
-
-      const topRow = document.createElement("div");
-      topRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;";
-
-      const left = document.createElement("div");
-      left.innerHTML = `
-        <label style="display:flex;align-items:center;gap:10px;font-weight:700;">
-          <input type="checkbox" data-idx="${idx}" ${i.completed ? "checked" : ""} />
-          <span>${i.name}</span>
-        </label>
-        <div style="font-size:13px;opacity:.8;margin-top:4px;">
-          Total cans: <strong>${total}</strong>
-        </div>
-      `;
-
-      const controls = document.createElement("div");
-      controls.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;";
-
-      // Qty controls: cases + loose cans (only show case size dropdown for case items)
-      const caseCtl = document.createElement("div");
-      caseCtl.style.cssText = "display:flex;gap:6px;align-items:center;border:1px solid #eee;border-radius:12px;padding:6px;";
-
-      const btnDecCase = document.createElement("button");
-      btnDecCase.textContent = "−";
-      btnDecCase.dataset.action = "decCase";
-      btnDecCase.dataset.idx = String(idx);
-
-      const caseVal = document.createElement("span");
-      caseVal.style.cssText = "min-width:26px;text-align:center;font-weight:700;";
-      caseVal.textContent = String(i.primaryQty);
-
-      const btnIncCase = document.createElement("button");
-      btnIncCase.textContent = "+";
-      btnIncCase.dataset.action = "incCase";
-      btnIncCase.dataset.idx = String(idx);
-
-      const caseLabel = document.createElement("span");
-      caseLabel.style.cssText = "font-size:12px;opacity:.8;";
-      caseLabel.textContent = i.primaryUnit;
-
-      caseCtl.append(btnDecCase, caseVal, btnIncCase, caseLabel);
-
-      const canCtl = document.createElement("div");
-      canCtl.style.cssText = "display:flex;gap:6px;align-items:center;border:1px solid #eee;border-radius:12px;padding:6px;";
-
-      const btnDecCan = document.createElement("button");
-      btnDecCan.textContent = "−";
-      btnDecCan.dataset.action = "decCan";
-      btnDecCan.dataset.idx = String(idx);
-
-      const canVal = document.createElement("span");
-      canVal.style.cssText = "min-width:26px;text-align:center;font-weight:700;";
-      canVal.textContent = String(i.secondaryQty);
-
-      const btnIncCan = document.createElement("button");
-      btnIncCan.textContent = "+";
-      btnIncCan.dataset.action = "incCan";
-      btnIncCan.dataset.idx = String(idx);
-
-      const canLabel = document.createElement("span");
-      canLabel.style.cssText = "font-size:12px;opacity:.8;";
-      canLabel.textContent = i.secondaryUnit || "";
-
-      canCtl.append(btnDecCan, canVal, btnIncCan, canLabel);
-
-      controls.appendChild(caseCtl);
-
-      if (i.primaryUnit === "case") {
-        // case size dropdown
-        const sel = document.createElement("select");
-        sel.dataset.action = "caseSize";
-        sel.dataset.idx = String(idx);
-        sel.style.cssText = "padding:6px;border-radius:10px;border:1px solid #eee;";
-        CASE_SIZES.forEach(n => {
-          const opt = document.createElement("option");
-          opt.value = String(n);
-          opt.textContent = `${n}/case`;
-          if (n === i.caseSize) opt.selected = true;
-          sel.appendChild(opt);
-        });
-        controls.appendChild(sel);
-        controls.appendChild(canCtl);
-      }
-
-      topRow.append(left, controls);
-      card.appendChild(topRow);
-
-      if (i.completed) completedEl.appendChild(card);
-      else pendingEl.appendChild(card);
+        el.innerHTML = `
+          <div class="inv-info">
+            <h4>${item.name}</h4>
+            <span>${item.caseSize > 0 ? `${item.caseSize}/${item.primaryUnit}` : item.primaryUnit}</span>
+          </div>
+          <div class="inv-inputs">
+            <div class="qty-wrap">
+              <label>${item.primaryUnit}</label>
+              <input type="number" class="input qty-input" data-name="${item.name}" data-field="primaryQty" value="${item.primaryQty}">
+            </div>
+            ${hasSecondary ? `
+            <div class="qty-wrap">
+              <label>${item.secondaryUnit}</label>
+              <input type="number" class="input qty-input" data-name="${item.name}" data-field="secondaryQty" value="${item.secondaryQty}">
+            </div>` : ''}
+          </div>
+        `;
+        groupDiv.appendChild(el);
+      });
+      root.appendChild(groupDiv);
     });
 
-    if (grandTotalEl) grandTotalEl.textContent = String(grand);
-    status(`Loaded ${s.items.length} items. Saved under "${STORE_KEY}". Total cans: ${grand}`);
-  }
-
-  function saveMetaOnly() {
-    const s = ensureState();
-    syncMetaToState(s);
-    setState(s);
-    status("Saved.");
-  }
-
-  // ---------- events ----------
-  inventoryRoot.addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    const action = btn.dataset.action;
-    const idx = Number(btn.dataset.idx);
-    if (!Number.isInteger(idx)) return;
-
-    const s = ensureState();
-    s.items = s.items.map(normalizeItem);
-
-    const it = s.items[idx];
-    if (!it) return;
-
-    if (action === "incCase") it.primaryQty += 1;
-    if (action === "decCase") it.primaryQty = Math.max(0, it.primaryQty - 1);
-    if (action === "incCan") it.secondaryQty += 1;
-    if (action === "decCan") it.secondaryQty = Math.max(0, it.secondaryQty - 1);
-
-    setState(s);
-    render();
-  });
-
-  inventoryRoot.addEventListener("change", (e) => {
-    const t = e.target;
-
-    // checkbox completed
-    if (t.matches('input[type="checkbox"][data-idx]')) {
-      const idx = Number(t.dataset.idx);
-      const s = ensureState();
-      s.items = s.items.map(normalizeItem);
-      if (s.items[idx]) s.items[idx].completed = !!t.checked;
-      setState(s);
-      render();
-      return;
-    }
-
-    // case size selector
-    if (t.matches('select[data-action="caseSize"][data-idx]')) {
-      const idx = Number(t.dataset.idx);
-      const s = ensureState();
-      s.items = s.items.map(normalizeItem);
-      if (s.items[idx]) s.items[idx].caseSize = Number(t.value);
-      setState(s);
-      render();
-      return;
-    }
-
-    // your member select toggles custom field
-    if (t === memberSelect) {
-      if (customWrap) customWrap.style.display = (memberSelect.value === "custom") ? "block" : "none";
-    }
-  });
-
-  if (btnSave) btnSave.addEventListener("click", () => saveMetaOnly());
-
-  // Load Template button: replaces items with DEFAULT_ITEMS (safe reset)
-  if (btnLoadTemplate) {
-    btnLoadTemplate.addEventListener("click", () => {
-      if (!confirm("Load default template and replace current items?")) return;
-      const s = ensureState();
-      s.items = DEFAULT_ITEMS.map(x => ({ ...x }));
-      syncMetaToState(s);
-      setState(s);
-      render();
+    // Attach listeners
+    document.querySelectorAll('.qty-input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const name = e.target.dataset.name;
+        const field = e.target.dataset.field;
+        const item = state.items.find(i => i.name === name);
+        if (item) item[field] = parseFloat(e.target.value) || 0;
+        localStorage.setItem(STORE_KEY, JSON.stringify(state)); // Auto-save on type
+      });
     });
-  }
+  };
 
-  // Export Excel: requires xlsx library; if missing, we warn.
-  if (btnExportExcel) {
-    btnExportExcel.addEventListener("click", () => {
-      const s = ensureState();
-      syncMetaToState(s);
-      setState(s);
+  // 4. EXPORT LOGIC (Pivot & PDF)
+  
+  // A. PIVOT EXCEL EXPORT
+  const exportExcelPivot = () => {
+    saveState();
+    if (!window.XLSX) return alert("XLSX library not loaded.");
+    
+    const wb = XLSX.utils.book_new();
+    const rows = [];
+    
+    // Title
+    rows.push(["INVENTORY SUMMARY REPORT"]);
+    rows.push([`Venue: ${state.meta.venue}`, `Event: ${state.meta.event}`, `Date: ${state.meta.date}`]);
+    rows.push([]); // spacer
 
-      if (!s.meta.completedBy) {
-        alert("Enter the bartender name (Inventory completed by) before exporting.");
-        return;
-      }
-      if (!window.XLSX) {
-        alert("Excel export library (XLSX) not loaded on this page.");
-        return;
-      }
+    // Headers
+    rows.push(["Category", "Product", "Unit", "Qty", "Product Type"]);
 
-      const rows = [["Item", "Cases", "Cans/Case", "Loose Cans", "Total Cans", "Completed"]];
-      s.items.map(normalizeItem).forEach(i => {
-        rows.push([
-          i.name,
-          i.primaryUnit === "case" ? i.primaryQty : "",
-          i.primaryUnit === "case" ? i.caseSize : "",
-          i.primaryUnit === "case" ? i.secondaryQty : "",
-          totalCans(i),
-          i.completed ? "Yes" : "No"
-        ]);
+    let grandTotal = 0;
+
+    // Sort items by Category
+    const categories = [...new Set(state.items.map(i => i.category))];
+    
+    categories.forEach(cat => {
+      // Header for Category
+      rows.push([cat.toUpperCase(), "", "", "", ""]);
+      
+      const catItems = state.items.filter(i => i.category === cat);
+      let catTotal = 0;
+
+      catItems.forEach(item => {
+        // Row 1: Primary Unit
+        if (item.primaryQty > 0 || item.caseSize > 0) { // Show if tracked, even if 0
+             rows.push(["", item.name, item.primaryUnit, item.primaryQty, item.category]);
+             catTotal += item.primaryQty;
+        }
+        // Row 2: Secondary Unit (if exists)
+        if (item.secondaryUnit && (item.secondaryQty > 0 || item.primaryQty > 0)) {
+             rows.push(["", item.name + " (Loose)", item.secondaryUnit, item.secondaryQty, item.category]);
+             // Note: usually we don't add loose cans to case totals directly without conversion, 
+             // but for a simple sum we track units. 
+             // If you want total UNITS:
+             catTotal += item.secondaryQty;
+        }
       });
 
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-      XLSX.writeFile(wb, `Inventory_${(s.meta.date || "date")}.xlsx`);
-      status("Exported Excel.");
+      // Subtotal
+      rows.push(["", `TOTAL ${cat.toUpperCase()}`, "", catTotal, ""]);
+      rows.push([]); // Spacer
+      grandTotal += catTotal;
     });
-  }
 
-  // Export PDF / Report: open report.html if present.
-  function openReport() {
-    const s = ensureState();
-    syncMetaToState(s);
-    setState(s);
+    rows.push(["GRAND TOTAL UNITS", "", "", grandTotal, ""]);
 
-    if (!s.meta.completedBy) {
-      alert("Enter the bartender name (Inventory completed by) before exporting.");
-      return;
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    
+    // Styling widths (basic)
+    ws['!cols'] = [{wch:15}, {wch:25}, {wch:10}, {wch:10}, {wch:15}];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Pivot Report");
+    XLSX.writeFile(wb, `Inventory_Pivot_${state.meta.date}.xlsx`);
+  };
+
+  // B. HELPER: Toast
+  const showToast = (msg) => {
+    const div = document.createElement('div');
+    div.style.cssText = "position:fixed; bottom:20px; right:20px; background:#10b981; color:white; padding:10px 20px; border-radius:8px; animation: fadeOut 2s forwards; z-index:999;";
+    div.innerText = msg;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 2000);
+  };
+
+  // 5. INITIALIZATION
+  document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    
+    if (document.getElementById('inventoryRoot')) {
+      // We are on Index page
+      render();
+      
+      document.getElementById('btnSave')?.addEventListener('click', saveState);
+      
+      document.getElementById('btnExportExcel')?.addEventListener('click', exportExcelPivot);
+      
+      document.getElementById('btnReport')?.addEventListener('click', () => {
+        saveState();
+        window.open('report.html', '_blank');
+      });
+      
+      // Load CSS Animation for toast
+      const style = document.createElement('style');
+      style.innerHTML = `@keyframes fadeOut { 0% {opacity:1;} 80% {opacity:1;} 100% {opacity:0;} }`;
+      document.head.appendChild(style);
+    } 
+    else if (document.getElementById('reportRoot')) {
+      // We are on Report page (Logic handled inside report.html, but we can share state logic)
+      // Since report.html is separate file, it will read localStorage independently.
     }
-    window.open("report.html", "_blank");
-  }
+  });
 
-  if (btnExportPDF) btnExportPDF.addEventListener("click", openReport);
-  if (btnReport) btnReport.addEventListener("click", openReport);
-
-  // ---------- init ----------
-  // Ensure state exists and render.
-  ensureState();
-  render();
 })();
+
