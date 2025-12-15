@@ -1,244 +1,585 @@
 (() => {
   // =========================
-  // Inventory App Logic
+  // Inventory Checklist - Hardened Runtime
+  // Now uses dropdowns for quantity and case size, and a status bar for messages.
   // =========================
 
-  const STORE_KEY = "inventory_state_v2"; 
-  
-  // 1. DATA CONFIGURATION (Matched to your CSV)
+  const STORE_KEY = "inventory_state_LOCKED_MAIN"; // DO NOT CHANGE AGAIN
+  const CASE_SIZES = [12, 18, 24, 30, 36]; // Available options for cans/case
+  const MAX_QTY_DROPDOWN = 30; // Max quantity for non-case/loose dropdowns
+
+  // Default items (replace/expand anytime)
+  // Added an 'id' field for robust tracking
   const DEFAULT_ITEMS = [
-    // Beer
-    { category: "Beer", name: "Miller Lite", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
-    { category: "Beer", name: "Dos Equis", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
-    { category: "Beer", name: "Michelob Ultra", primaryUnit: "case", caseSize: 30, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
-    { category: "Beer", name: "Modelo", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
-    { category: "Beer", name: "Crawford Bock", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Beer", name: "Shiner", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
-    { category: "Beer", name: "Karbach Love St", primaryUnit: "pack", caseSize: 18, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0 },
-    
-    // Non-Alcoholic
-    { category: "Non-Alcoholic", name: "Diet Coke", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Non-Alcoholic", name: "Coke Zero", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Non-Alcoholic", name: "Sprite", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Non-Alcoholic", name: "Topo Chico", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    
-    // Wine
-    { category: "Wine", name: "Pinot Grigio (Ryan P)", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Wine", name: "Sauv Blanc (Old Mtn)", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Wine", name: "Cab Sauv (Old Mtn)", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    
-    // Spirits
-    { category: "Spirits", name: "Jack Daniel's", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Spirits", name: "Tito's Vodka", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Spirits", name: "Bombay Sapphire", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Spirits", name: "Bacardi Superior", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    
-    // Supplies
-    { category: "Supplies", name: "Ice Bags", primaryUnit: "bag", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 },
-    { category: "Supplies", name: "Cup Stacks", primaryUnit: "stack", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0 }
+    { id: crypto.randomUUID(), category: "Beer", productType: "Beer", name: "Miller Lite", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Beer", productType: "Beer", name: "Michelob Ultra", primaryUnit: "case", caseSize: 30, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Beer", productType: "Beer", name: "Dos Equis", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Beer", productType: "Beer", name: "Shiner", primaryUnit: "case", caseSize: 24, primaryQty: 0, secondaryUnit: "can", secondaryQty: 0, completed: false },
+
+    { id: crypto.randomUUID(), category: "Liquor", productType: "Vodka", name: "Ketel One Vodka", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Liquor", productType: "Rum", name: "Malibu Rum", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Liquor", productType: "Whiskey", name: "Jack Daniel's", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
+
+    { id: crypto.randomUUID(), category: "Wine", productType: "White Wine", name: "Pinot Grigio", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Mixers", productType: "Juice", name: "Lime Juice", primaryUnit: "bottle", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
+    { id: crypto.randomUUID(), category: "Mixers", productType: "Soda", name: "Diet Coke", primaryUnit: "can", caseSize: 0, primaryQty: 0, secondaryUnit: "", secondaryQty: 0, completed: false },
   ];
 
-  // 2. STATE MANAGEMENT
-  let state = {
-    meta: { venue: "", event: "", date: new Date().toISOString().split('T')[0], bartender: "" },
-    items: JSON.parse(JSON.stringify(DEFAULT_ITEMS))
-  };
 
-  const loadState = () => {
-    const s = localStorage.getItem(STORE_KEY);
-    if (s) {
-      try {
-        const parsed = JSON.parse(s);
-        // Merge saved items with default items to ensure structure exists
-        state = { ...state, ...parsed };
-        // If stored items list is shorter than default (new items added), merge them
-        if (state.items.length < DEFAULT_ITEMS.length) {
-            // Simple merge strategy: add missing by name
-            DEFAULT_ITEMS.forEach(d => {
-                if(!state.items.find(i => i.name === d.name)) state.items.push(d);
-            })
-        }
-      } catch (e) { console.error("Save file corrupted", e); }
+  // --- Utility Functions ---
+
+  function safeJsonParse(str, fallback = {}) {
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      console.error("Error parsing JSON from localStorage:", e);
+      return fallback;
     }
-  };
+  }
 
-  const saveState = () => {
-    // Sync UI inputs to state before saving
-    state.meta.venue = document.getElementById('venueName')?.value || "";
-    state.meta.event = document.getElementById('eventName')?.value || "";
-    state.meta.date = document.getElementById('eventDate')?.value || "";
-    state.meta.bartender = document.getElementById('bartenderName')?.value || "";
-    
-    // Items are live-updated in 'input' events, but let's be safe
-    localStorage.setItem(STORE_KEY, JSON.stringify(state));
-    showToast("Progress Saved!");
-  };
+  function totalCans(i) {
+    if (i.primaryUnit === 'can' || i.primaryUnit === 'pack') {
+      // For items counted in cans/packs, the total is just the primary quantity.
+      return (Number(i.primaryQty) || 0) + (Number(i.secondaryQty) || 0);
+    }
+    if (i.primaryUnit === 'case') {
+      return (
+        (Number(i.primaryQty) || 0) * (Number(i.caseSize) || 0) +
+        (Number(i.secondaryQty) || 0)
+      );
+    }
+    return 0; // Bottles, bags, etc., don't count towards 'cans' total.
+  }
 
-  // 3. UI RENDERING
-  const render = () => {
-    // Fill Meta
-    if(document.getElementById('venueName')) document.getElementById('venueName').value = state.meta.venue;
-    if(document.getElementById('eventName')) document.getElementById('eventName').value = state.meta.event;
-    if(document.getElementById('eventDate')) document.getElementById('eventDate').value = state.meta.date;
-    if(document.getElementById('bartenderName')) document.getElementById('bartenderName').value = state.meta.bartender;
+  function normalizeItem(item) {
+    // Ensures all items have required keys for rendering
+    return {
+        id: item.id || crypto.randomUUID(),
+        category: item.category || 'Uncategorized',
+        productType: item.productType || '',
+        name: item.name || 'Unnamed Item',
+        primaryUnit: item.primaryUnit || 'unit',
+        caseSize: Number(item.caseSize) || 0,
+        primaryQty: Number(item.primaryQty) || 0,
+        secondaryUnit: item.secondaryUnit || '',
+        secondaryQty: Number(item.secondaryQty) || 0,
+        completed: !!item.completed,
+    };
+  }
 
-    const root = document.getElementById('inventoryRoot');
-    if (!root) return; // We might be on report page
+  // --- State Management ---
 
-    root.innerHTML = '';
-    
-    // Group by Category
-    const grouped = state.items.reduce((acc, item) => {
-      acc[item.category] = acc[item.category] || [];
-      acc[item.category].push(item);
-      return acc;
-    }, {});
+  function ensureState() {
+    let state = safeJsonParse(localStorage.getItem(STORE_KEY));
+    if (!state || !Array.isArray(state.items) || state.items.length === 0) {
+      // Initialize with default template if state is empty or invalid
+      state = {
+        meta: { venue: "", event: "", bartender: "", date: "" },
+        items: DEFAULT_ITEMS.map(i => ({...i, id: i.id || crypto.randomUUID()}))
+      };
+      // Ensure all items have IDs
+    }
+    return state;
+  }
 
-    Object.keys(grouped).forEach(cat => {
-      const groupDiv = document.createElement('div');
-      groupDiv.className = 'inv-group';
-      groupDiv.innerHTML = `<div class="inv-group__header">${cat}</div>`;
-      
-      grouped[cat].forEach(item => {
-        const el = document.createElement('div');
-        el.className = 'inv-item';
-        
-        // Check if secondary unit exists
-        const hasSecondary = item.secondaryUnit && item.secondaryUnit !== "";
+  function setState(s) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(s));
+    renderAll(s);
+  }
 
-        el.innerHTML = `
-          <div class="inv-info">
-            <h4>${item.name}</h4>
-            <span>${item.caseSize > 0 ? `${item.caseSize}/${item.primaryUnit}` : item.primaryUnit}</span>
-          </div>
-          <div class="inv-inputs">
-            <div class="qty-wrap">
-              <label>${item.primaryUnit}</label>
-              <input type="number" class="input qty-input" data-name="${item.name}" data-field="primaryQty" value="${item.primaryQty}">
-            </div>
-            ${hasSecondary ? `
-            <div class="qty-wrap">
-              <label>${item.secondaryUnit}</label>
-              <input type="number" class="input qty-input" data-name="${item.name}" data-field="secondaryQty" value="${item.secondaryQty}">
-            </div>` : ''}
-          </div>
+  // --- Status/Error Message Implementation ---
+  function status(message, isError = false) {
+    const el = document.getElementById('statusMessage');
+    if (!el) return;
+
+    el.textContent = message;
+    el.className = isError ? 'status status--error' : 'status status--ok';
+
+    // Clear after a delay unless it's an error
+    setTimeout(() => {
+      if (!isError) {
+        el.textContent = '';
+        el.className = 'status';
+      }
+    }, 4000);
+  }
+
+  // --- Helper to generate SELECT options ---
+  function generateOptions(values, selectedValue, includeZero = true) {
+    let options = '';
+    // Use an array of numbers from 0 up to the limit if `values` is not an array
+    const countLimit = Array.isArray(values) ? values : Array.from({ length: MAX_QTY_DROPDOWN + 1 }, (_, i) => i);
+
+    if (includeZero && !Array.isArray(values)) { // Ensure 0 is the first option only if generating up to MAX_QTY_DROPDOWN
+      options += `<option value="0" ${selectedValue == 0 ? 'selected' : ''}>0</option>`;
+      const start = countLimit[0] === 0 ? 1 : 0; // start at 1 if 0 was added
+      for (let i = start; i < countLimit.length; i++) {
+        options += `<option value="${countLimit[i]}" ${selectedValue == countLimit[i] ? 'selected' : ''}>${countLimit[i]}</option>`;
+      }
+    } else {
+      // If values are explicit (like CASE_SIZES or loose cans), include all.
+      if (includeZero) {
+        options += `<option value="0" ${selectedValue == 0 ? 'selected' : ''}>0</option>`;
+      }
+      countLimit.forEach(val => {
+        if (val === 0 && includeZero) return; // Skip 0 if already added or not needed
+        options += `<option value="${val}" ${selectedValue == val ? 'selected' : ''}>${val}</option>`;
+      });
+    }
+
+    return options;
+  }
+
+  // --- Event Handlers & Core Logic ---
+
+  function handleInputChange(event) {
+    const s = ensureState();
+    const itemId = event.target.closest('[data-id]').dataset.id;
+    const item = s.items.find(i => i.id === itemId);
+
+    if (!item) return;
+
+    const name = event.target.name;
+    let value = event.target.value;
+
+    if (name === 'completed') {
+        value = event.target.checked;
+    } else if (name === 'primaryQty' || name === 'secondaryQty' || name === 'caseSize') {
+        // Handle dropdowns for quantity and caseSize
+        value = Number(value);
+        if (name === 'caseSize') {
+            // Recalculate secondary options to match new caseSize, then re-render row
+            item.caseSize = value;
+            setState(s); // Re-render to update the secondaryQty dropdown options
+            return; // Exit to prevent double-render
+        }
+    }
+
+    item[name] = value;
+    setState(s);
+  }
+
+
+  function syncMetaToState(s) {
+    s.meta.venue = document.getElementById("venueName")?.value || "";
+    s.meta.event = document.getElementById("eventName")?.value || "";
+    s.meta.date = document.getElementById("eventDate")?.value || "";
+
+    const memberSelect = document.getElementById("memberSelect");
+    const customInput = document.getElementById("bartenderName");
+
+    if (memberSelect?.value === 'custom') {
+      s.meta.completedBy = customInput?.value || "";
+    } else {
+      s.meta.completedBy = memberSelect?.value || "";
+    }
+  }
+
+  // --- Render Functions ---
+
+  function renderMeta(s) {
+    document.getElementById("venueName").value = s.meta.venue || "";
+    document.getElementById("eventName").value = s.meta.event || "";
+    document.getElementById("eventDate").value = s.meta.date || "";
+
+    const memberSelect = document.getElementById("memberSelect");
+    const customInput = document.getElementById("bartenderName");
+    const customWrap = document.getElementById("customMemberWrap");
+
+    // Sync from state to UI
+    let found = false;
+    for (const option of memberSelect.options) {
+        if (option.value === s.meta.completedBy) {
+            memberSelect.value = s.meta.completedBy;
+            customWrap.style.display = 'none';
+            found = true;
+            break;
+        }
+    }
+
+    if (!found && s.meta.completedBy) {
+        memberSelect.value = 'custom';
+        customInput.value = s.meta.completedBy;
+        customWrap.style.display = 'block';
+    } else if (!s.meta.completedBy) {
+        memberSelect.value = '';
+        customWrap.style.display = 'none';
+        customInput.value = '';
+    } else if (memberSelect.value !== 'custom') {
+        customWrap.style.display = 'none';
+        customInput.value = '';
+    }
+
+    memberSelect.onchange = () => {
+        if (memberSelect.value === 'custom') {
+            customWrap.style.display = 'block';
+        } else {
+            customWrap.style.display = 'none';
+        }
+        syncMetaToState(s);
+        setState(s);
+    };
+
+    document.querySelectorAll('.field input').forEach(input => {
+      input.oninput = () => {
+        syncMetaToState(s);
+        setState(s);
+      };
+    });
+  }
+
+  function renderInventory(items) {
+    const root = document.getElementById("inventoryRoot");
+    if (!root) return;
+
+    // Sort: Uncompleted first, then by Category, then by name
+    items.sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        if (a.category < b.category) return -1;
+        if (a.category > b.category) return 1;
+        if (a.name < b.name) return -1;
+        if (a.name > b.name) return 1;
+        return 0;
+    });
+
+    let currentCategory = null;
+    let html = `
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="th-unit">Category</th>
+              <th>Item</th>
+              <th class="th-qty align-right">Primary Unit</th>
+              <th class="th-casesize align-right">Cans/Case</th>
+              <th class="th-qty align-right">Loose Unit</th>
+              <th class="th-qty align-right">Total Cans</th>
+              <th class="th-completed">Done</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    items.map(normalizeItem).forEach((i, index) => {
+        if (i.category !== currentCategory) {
+            html += `
+                <tr class="category-header">
+                    <td colspan="7">
+                        ${i.category}
+                    </td>
+                </tr>
+            `;
+            currentCategory = i.category;
+        }
+
+        const isCaseItem = i.primaryUnit === 'case';
+        const isCompletedClass = i.completed ? 'is-completed' : '';
+        const idAttr = `data-id="${i.id}"`;
+
+        // 1. Primary Quantity Dropdown Options (0 to MAX_QTY_DROPDOWN)
+        const qtyOptions = generateOptions(null, i.primaryQty);
+
+        // 2. Case Size Dropdown Options (12, 18, 24, 30, 36)
+        const caseSizeOptions = generateOptions(CASE_SIZES, i.caseSize);
+
+        // 3. Loose/Secondary Quantity Dropdown Options (0 to caseSize, or 0 to MAX_QTY_DROPDOWN)
+        let secondaryLimit = null;
+        if (isCaseItem && i.caseSize > 0) {
+            secondaryLimit = Array.from({ length: i.caseSize }, (_, j) => j);
+        } else if (!isCaseItem && i.secondaryUnit) {
+            secondaryLimit = Array.from({ length: MAX_QTY_DROPDOWN + 1 }, (_, j) => j);
+        }
+
+        const secondaryOptions = secondaryLimit ? generateOptions(secondaryLimit, i.secondaryQty) : generateOptions(null, i.secondaryQty);
+
+
+        html += `
+            <tr ${idAttr} class="${isCompletedClass}">
+                <td class="td-unit">${i.productType || i.category}</td>
+                <td>${i.name}</td>
+
+                <td class="td-qty align-right">
+                    <div class="input-wrap">
+                        <select name="primaryQty" onchange="handleInputChange(event)" class="select-qty">
+                            ${qtyOptions}
+                        </select>
+                        <span class="unit-label">${i.primaryUnit}</span>
+                    </div>
+                </td>
+
+                <td class="td-casesize align-right">
+                    ${isCaseItem ? `
+                        <div class="input-wrap">
+                            <select name="caseSize" onchange="handleInputChange(event)" class="select-qty select-casesize">
+                                ${caseSizeOptions}
+                            </select>
+                            <span class="unit-label">cans/case</span>
+                        </div>
+                    ` : '&mdash;'}
+                </td>
+
+                <td class="td-qty align-right">
+                    ${isCaseItem || i.secondaryUnit ? `
+                        <div class="input-wrap">
+                            <select name="secondaryQty" onchange="handleInputChange(event)" class="select-qty">
+                                ${secondaryOptions}
+                            </select>
+                            <span class="unit-label">${isCaseItem ? 'loose' : i.secondaryUnit}</span>
+                        </div>
+                    ` : '&mdash;'}
+                </td>
+
+                <td class="td-qty align-right total-cans">${totalCans(i)}</td>
+
+                <td class="td-completed">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="completed" onchange="handleInputChange(event)" ${i.completed ? 'checked' : ''} />
+                    </label>
+                </td>
+            </tr>
         `;
-        groupDiv.appendChild(el);
-      });
-      root.appendChild(groupDiv);
     });
 
-    // Attach listeners
-    document.querySelectorAll('.qty-input').forEach(inp => {
-      inp.addEventListener('input', (e) => {
-        const name = e.target.dataset.name;
-        const field = e.target.dataset.field;
-        const item = state.items.find(i => i.name === name);
-        if (item) item[field] = parseFloat(e.target.value) || 0;
-        localStorage.setItem(STORE_KEY, JSON.stringify(state)); // Auto-save on type
-      });
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    root.innerHTML = html;
+  }
+
+  function renderTotals(items) {
+    const root = document.getElementById("totalsRoot");
+    if (!root) return;
+
+    const total = items.reduce((acc, i) => acc + totalCans(i), 0);
+
+    let html = `
+        <div class="stamp">
+            <div class="stamp__label">Total Cans/Equivalents</div>
+            <div class="stamp__value">${total.toLocaleString()}</div>
+        </div>
+    `;
+    root.innerHTML = html;
+  }
+
+  function renderAll(s) {
+    renderMeta(s);
+    renderInventory(s.items);
+    renderTotals(s.items);
+  }
+
+  // --- Action Functions ---
+
+  function loadDefaultTemplate() {
+    // Cannot use confirm(), so we proceed with overwrite and message the user.
+    const s = {
+      meta: {
+        venue: "",
+        event: "",
+        bartender: "",
+        date: ""
+      },
+      items: DEFAULT_ITEMS.map(i => ({...i, id: crypto.randomUUID()})),
+    };
+    setState(s);
+    status("Default template loaded. Existing data was overwritten.");
+  }
+
+  function loadTemplateFromCSV(csvText) {
+      // Logic to parse CSV and map it to inventory items
+      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+      if (lines.length < 2) {
+          status("CSV is empty or invalid.", true);
+          return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const itemCol = headers.indexOf('item');
+      const unitCol = headers.indexOf('unit');
+      const qtyCol = headers.indexOf('qty');
+      const categoryCol = headers.indexOf('category');
+
+      if (itemCol === -1 || unitCol === -1 || qtyCol === -1) {
+          status("CSV headers missing: Item, Unit, or Qty.", true);
+          return;
+      }
+
+      const newItems = lines.slice(1).map(line => {
+          const values = line.match(/(?:\"([^\"]*)\"|([^,]*))/g) // Regex for basic CSV parsing including quoted fields
+              .filter(v => v !== undefined && v !== ',');
+
+          const item = values[itemCol]?.replace(/"/g, '').trim() || 'Unnamed Item';
+          const unit = values[unitCol]?.replace(/"/g, '').trim() || 'unit';
+          const qty = Number(values[qtyCol]?.replace(/"/g, '').trim()) || 0;
+          const category = values[categoryCol]?.replace(/"/g, '').trim() || 'Other';
+
+          // Simple logic to guess primary/secondary units and caseSize from the CSV data
+          let primaryUnit = unit;
+          let secondaryUnit = '';
+          let primaryQty = qty;
+          let secondaryQty = 0;
+          let caseSize = 0;
+
+          if (unit === 'case' || unit === 'pack') {
+              primaryUnit = unit;
+              primaryQty = qty;
+              // Set a default common case size, user can adjust with dropdown
+              caseSize = unit === 'case' ? 24 : 18;
+          } else if (unit === 'can' || unit === 'bottle') {
+              // If initial data is in cans/bottles, just treat it as primary unit.
+              // We'll leave the secondaryUnit blank for simplicity.
+              primaryUnit = unit;
+          }
+
+          return normalizeItem({
+              id: crypto.randomUUID(),
+              category: category,
+              productType: category, // Use category as product type for simplicity
+              name: item,
+              primaryUnit: primaryUnit,
+              caseSize: caseSize,
+              primaryQty: primaryQty,
+              secondaryUnit: secondaryUnit,
+              secondaryQty: secondaryQty,
+              completed: false
+          });
+      }).filter(i => i.name !== 'Unnamed Item');
+
+      if (newItems.length === 0) {
+          status("No valid items found in CSV data.", true);
+          return;
+      }
+
+      const s = ensureState();
+      s.items = newItems;
+      setState(s);
+      status(`Successfully loaded ${newItems.length} items from CSV.`);
+  }
+
+  function exportExcel() {
+    const s = ensureState();
+    syncMetaToState(s);
+    setState(s);
+
+    if (!s.meta.completedBy) {
+      status("Enter the bartender name (Inventory completed by) before exporting.", true);
+      return;
+    }
+    if (!window.XLSX) {
+      status("Excel export library (XLSX) not loaded on this page.", true);
+      return;
+    }
+
+    const rows = [["Item", "Primary Unit Count", "Primary Unit Type", "Cans/Case", "Loose Unit Count", "Loose Unit Type", "Total Cans/Equiv.", "Completed"]];
+    s.items.map(normalizeItem).forEach(i => {
+      rows.push([
+        i.name,
+        i.primaryQty,
+        i.primaryUnit,
+        i.primaryUnit === 'case' ? i.caseSize : '',
+        i.secondaryQty,
+        i.secondaryUnit,
+        totalCans(i),
+        i.completed ? "Yes" : "No"
+      ]);
     });
-  };
-
-  // 4. EXPORT LOGIC (Pivot & PDF)
-  
-  // A. PIVOT EXCEL EXPORT
-  const exportExcelPivot = () => {
-    saveState();
-    if (!window.XLSX) return alert("XLSX library not loaded.");
-    
-    const wb = XLSX.utils.book_new();
-    const rows = [];
-    
-    // Title
-    rows.push(["INVENTORY SUMMARY REPORT"]);
-    rows.push([`Venue: ${state.meta.venue}`, `Event: ${state.meta.event}`, `Date: ${state.meta.date}`]);
-    rows.push([]); // spacer
-
-    // Headers
-    rows.push(["Category", "Product", "Unit", "Qty", "Product Type"]);
-
-    let grandTotal = 0;
-
-    // Sort items by Category
-    const categories = [...new Set(state.items.map(i => i.category))];
-    
-    categories.forEach(cat => {
-      // Header for Category
-      rows.push([cat.toUpperCase(), "", "", "", ""]);
-      
-      const catItems = state.items.filter(i => i.category === cat);
-      let catTotal = 0;
-
-      catItems.forEach(item => {
-        // Row 1: Primary Unit
-        if (item.primaryQty > 0 || item.caseSize > 0) { // Show if tracked, even if 0
-             rows.push(["", item.name, item.primaryUnit, item.primaryQty, item.category]);
-             catTotal += item.primaryQty;
-        }
-        // Row 2: Secondary Unit (if exists)
-        if (item.secondaryUnit && (item.secondaryQty > 0 || item.primaryQty > 0)) {
-             rows.push(["", item.name + " (Loose)", item.secondaryUnit, item.secondaryQty, item.category]);
-             // Note: usually we don't add loose cans to case totals directly without conversion, 
-             // but for a simple sum we track units. 
-             // If you want total UNITS:
-             catTotal += item.secondaryQty;
-        }
-      });
-
-      // Subtotal
-      rows.push(["", `TOTAL ${cat.toUpperCase()}`, "", catTotal, ""]);
-      rows.push([]); // Spacer
-      grandTotal += catTotal;
-    });
-
-    rows.push(["GRAND TOTAL UNITS", "", "", grandTotal, ""]);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    
-    // Styling widths (basic)
-    ws['!cols'] = [{wch:15}, {wch:25}, {wch:10}, {wch:10}, {wch:15}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+    XLSX.writeFile(wb, `Inventory_${(s.meta.date || "date")}.xlsx`);
+    status("Exported Excel.");
+  }
 
-    XLSX.utils.book_append_sheet(wb, ws, "Pivot Report");
-    XLSX.writeFile(wb, `Inventory_Pivot_${state.meta.date}.xlsx`);
-  };
+  // Export PDF / Report: open report.html if present.
+  function openReport() {
+    const s = ensureState();
+    syncMetaToState(s);
+    setState(s);
 
-  // B. HELPER: Toast
-  const showToast = (msg) => {
-    const div = document.createElement('div');
-    div.style.cssText = "position:fixed; bottom:20px; right:20px; background:#10b981; color:white; padding:10px 20px; border-radius:8px; animation: fadeOut 2s forwards; z-index:999;";
-    div.innerText = msg;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 2000);
-  };
-
-  // 5. INITIALIZATION
-  document.addEventListener('DOMContentLoaded', () => {
-    loadState();
-    
-    if (document.getElementById('inventoryRoot')) {
-      // We are on Index page
-      render();
-      
-      document.getElementById('btnSave')?.addEventListener('click', saveState);
-      
-      document.getElementById('btnExportExcel')?.addEventListener('click', exportExcelPivot);
-      
-      document.getElementById('btnReport')?.addEventListener('click', () => {
-        saveState();
-        window.open('report.html', '_blank');
-      });
-      
-      // Load CSS Animation for toast
-      const style = document.createElement('style');
-      style.innerHTML = `@keyframes fadeOut { 0% {opacity:1;} 80% {opacity:1;} 100% {opacity:0;} }`;
-      document.head.appendChild(style);
-    } 
-    else if (document.getElementById('reportRoot')) {
-      // We are on Report page (Logic handled inside report.html, but we can share state logic)
-      // Since report.html is separate file, it will read localStorage independently.
+    if (!s.meta.completedBy) {
+      status("Enter the bartender name (Inventory completed by) before exporting.", true);
+      return;
     }
-  });
+    // We cannot use confirm, so we just open the report
+    window.open("report.html", "_blank");
+  }
 
+  // --- Initialization ---
+
+  function init() {
+    const initialState = ensureState();
+    renderAll(initialState);
+
+    // Button event listeners
+    const btnSave = document.getElementById("btnSave");
+    if (btnSave) {
+      btnSave.addEventListener("click", () => {
+        syncMetaToState(initialState);
+        setState(initialState);
+        status("Inventory saved.");
+      });
+    }
+
+    const btnReport = document.getElementById("btnReport");
+    if (btnReport) {
+      btnReport.addEventListener("click", openReport);
+    }
+
+    const btnLoadTemplate = document.getElementById("btnLoadTemplate");
+    if (btnLoadTemplate) {
+      btnLoadTemplate.addEventListener("click", loadDefaultTemplate);
+    }
+
+    const btnExportExcel = document.getElementById("btnExportExcel");
+    if (btnExportExcel) {
+      if (window.XLSX) {
+        btnExportExcel.addEventListener("click", exportExcel);
+      } else {
+        btnExportExcel.addEventListener("click", () => status("Excel export library (XLSX) not loaded on this page.", true));
+      }
+    }
+
+    const btnExportPDF = document.getElementById("btnExportPDF");
+    if (btnExportPDF) {
+      btnExportPDF.addEventListener("click", openReport); // Re-use the report HTML for "PDF"
+    }
+
+    // CSV Load Button Logic
+    const btnLoadCSV = document.getElementById("btnLoadCSV");
+    if (btnLoadCSV) {
+        // Create a hidden file input element
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.csv';
+        fileInput.style.display = 'none';
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    loadTemplateFromCSV(event.target.result);
+                };
+                reader.onerror = () => {
+                    status("Error reading CSV file.", true);
+                };
+                reader.readAsText(file);
+            }
+        };
+        document.body.appendChild(fileInput);
+
+        btnLoadCSV.addEventListener("click", () => {
+            fileInput.click();
+        });
+    }
+  }
+
+  init();
+
+  // Expose for global use in HTML (onchange events)
+  window.handleInputChange = handleInputChange;
 })();
 
