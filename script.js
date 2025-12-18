@@ -38,6 +38,17 @@ const DEFAULT_INVENTORY = [
 
 let products = [];
 
+function loadProductsForExport() {
+  try {
+    const stored = localStorage.getItem("products");
+    const parsed = stored ? normalizeProducts(JSON.parse(stored)) : [];
+    if (parsed.length) return parsed;
+  } catch (err) {
+    console.warn("Unable to read products from storage", err);
+  }
+  return products.length ? normalizeProducts(products) : [];
+}
+
 function normalizeProducts(list) {
   return (list || []).map(p => ({
     ...p,
@@ -139,11 +150,18 @@ function addProduct() {
 }
 
 async function generateCSV() {
+  const dataset = loadProductsForExport();
+
+  if (!dataset.length) {
+    alert("No products available to export yet.");
+    return;
+  }
+
   let csv = "Item,Category,Singles,Cases,Pack,Total Units\n";
   const categoryTotals = {};
   let grandTotal = 0;
 
-  products.forEach(p => {
+  dataset.forEach(p => {
     const totalUnits = (p.singles || 0) + (p.cases || 0) * (p.pack || 24);
     grandTotal += totalUnits;
     categoryTotals[p.category] = (categoryTotals[p.category] || 0) + totalUnits;
@@ -205,7 +223,7 @@ function triggerDownload(blob, filename) {
 
 async function promptShareReport(blob, filename) {
   const smsNumber = "+15555551234"; // placeholder SMS number
-  const shareText = `Inventory report ready to send to ${smsNumber}.`;
+  const shareText = `Inventory report ready to send to ${smsNumber}. Attach ${filename} if prompted.`;
 
   const shareableFile = createShareableFile(blob, filename);
   const shareData = shareableFile
@@ -222,7 +240,7 @@ async function promptShareReport(blob, filename) {
   }
 
   alert(`Tap OK to open your messages app and send the report to ${smsNumber}. Attach ${filename} from your downloads if prompted.`);
-  openSmsDraft(smsNumber);
+  openSmsDraft(smsNumber, shareText);
 }
 
 function createShareableFile(blob, filename) {
@@ -236,9 +254,13 @@ function createShareableFile(blob, filename) {
   return null;
 }
 
-function openSmsDraft(number) {
-  const smsLink = `sms:${encodeURIComponent(number)}?body=${encodeURIComponent("Inventory report is ready to send.")}`;
-  window.open(smsLink, "_blank");
+function openSmsDraft(number, bodyText = "Inventory report is ready to send.") {
+  const sanitizedNumber = (number || "").replace(/[^+\d]/g, "");
+  const delimiter = /iPad|iPhone|iPod/i.test(navigator.userAgent || "") ? "&" : "?";
+  const smsLink = `sms:${sanitizedNumber}${bodyText ? `${delimiter}body=${encodeURIComponent(bodyText)}` : ""}`;
+
+  // using location.href is more reliable for deep links than window.open
+  window.location.href = smsLink;
 }
 
 /* INIT */
