@@ -8,22 +8,44 @@
 </head>
 <body>
 
-<h1>Bartending Inventory</h1>
+<main class="container">
+  <header class="header">
+    <div>
+      <p class="eyebrow">Bartending2U</p>
+      <h1>Inventory Checklist</h1>
+      <p class="lede">Track singles and cases for each product. Totals update instantly.</p>
+    </div>
+    <button class="primary" onclick="generateCSV()">Generate Report</button>
+  </header>
 
-<section>
-  <input id="name" placeholder="Product name">
-  <input id="category" placeholder="Category">
-  <select id="unit">
-    <option value="can">Can</option>
-    <option value="bottle">Bottle</option>
-    <option value="each">Each</option>
-  </select>
-  <button onclick="addProduct()">Add Product</button>
-</section>
+  <section class="card addForm" aria-label="Add a product">
+    <div class="formGrid">
+      <label>
+        <span>Product name</span>
+        <input id="name" placeholder="Topo Chico" autocomplete="off">
+      </label>
 
-<section id="inventory"></section>
+      <label>
+        <span>Category</span>
+        <input id="category" placeholder="Mixers / Water" autocomplete="off">
+      </label>
 
-<button onclick="generateCSV()">Generate Report</button>
+      <label>
+        <span>Unit type</span>
+        <select id="unit">
+          <option value="can">Can</option>
+          <option value="bottle">Bottle</option>
+          <option value="each">Each</option>
+          <option value="bag">Bag</option>
+          <option value="stack">Stack</option>
+        </select>
+      </label>
+    </div>
+    <button class="primary fullWidth" onclick="addProduct()">Add Product</button>
+  </section>
+
+  <section id="inventory" class="inventory" aria-live="polite"></section>
+</main>
 
 <script src="script.js"></script>
 </body>
