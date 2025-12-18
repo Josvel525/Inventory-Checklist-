@@ -18,30 +18,14 @@
     <button class="primary" onclick="generateCSV()">Generate Report</button>
   </header>
 
-  <section class="card addForm" aria-label="Add a product">
-    <div class="formGrid">
-      <label>
-        <span>Product name</span>
-        <input id="name" placeholder="Topo Chico" autocomplete="off">
-      </label>
-
-      <label>
-        <span>Category</span>
-        <input id="category" placeholder="Mixers / Water" autocomplete="off">
-      </label>
-
-      <label>
-        <span>Unit type</span>
-        <select id="unit">
-          <option value="can">Can</option>
-          <option value="bottle">Bottle</option>
-          <option value="each">Each</option>
-          <option value="bag">Bag</option>
-          <option value="stack">Stack</option>
-        </select>
-      </label>
+  <section class="card actionCard" aria-label="Add a product">
+    <div class="actionCard__content">
+      <div>
+        <h2>Add products</h2>
+        <p class="lede">Add new inventory items without cluttering this page.</p>
+      </div>
+      <a class="primary" href="add-product.html">Add Product</a>
     </div>
-    <button class="primary fullWidth" onclick="addProduct()">Add Product</button>
   </section>
 
   <section id="inventory" class="inventory" aria-live="polite"></section>

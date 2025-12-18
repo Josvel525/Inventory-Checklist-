@@ -97,7 +97,10 @@ function render() {
             <strong>${p.name}</strong>
             <span class="pill">${p.category || "Uncategorized"}</span>
           </div>
-          <button class="secondary" onclick="completeProduct(${i})">Complete</button>
+          <div class="rowActions">
+            <button class="ghost" onclick="deleteProduct(${i})">Delete</button>
+            <button class="secondary" onclick="completeProduct(${i})">Complete</button>
+          </div>
         </div>
 
         <div class="grid countsGrid">
@@ -126,27 +129,50 @@ function completeProduct(index) {
   save();
 }
 
-function addProduct() {
-  const n = document.getElementById("name").value.trim();
-  const c = document.getElementById("category").value.trim();
-  const u = document.getElementById("unit").value;
+function deleteProduct(index) {
+  if (!products[index]) return;
+  products.splice(index, 1);
+  save();
+}
 
-  if (!n) return;
+function addProduct() {
+  const nameField = document.getElementById("name");
+  const categoryField = document.getElementById("category");
+  const unitField = document.getElementById("unit");
+
+  if (!nameField) return;
+
+  const n = nameField.value.trim();
+  const c = categoryField?.value.trim();
+  const u = unitField?.value;
+
+  const added = addNewProduct({ name: n, category: c, unit: u });
+
+  if (!added) return;
+
+  const packField = document.getElementById("pack");
+  if (packField) packField.value = "24";
+
+  nameField.value = "";
+  if (categoryField) categoryField.value = "";
+}
+
+function addNewProduct({ name, category, unit = "each", pack = 24 }) {
+  const trimmedName = (name || "").trim();
+  if (!trimmedName) return false;
 
   products.unshift({
-    name: n,
-    category: c || "Uncategorized",
-    unit: u,
+    name: trimmedName,
+    category: (category || "Uncategorized").trim() || "Uncategorized",
+    unit,
     singles: 0,
     cases: 0,
-    pack: 24,
+    pack: parseInt(pack, 10) || 24,
     completed: false
   });
 
-  document.getElementById("name").value = "";
-  document.getElementById("category").value = "";
-
   save(true);
+  return true;
 }
 
 async function generateCSV() {
@@ -263,29 +289,45 @@ function openSmsDraft(number, bodyText = "Inventory report is ready to send.") {
   window.location.href = smsLink;
 }
 
-/* INIT */
-renderLoading();
+function fetchDefaults() {
+  return fetch("inventory.json")
+    .then(res => {
+      if (!res.ok) throw new Error("inventory.json not found");
+      return res.json();
+    })
+    .catch(err => {
+      console.error(err);
+      return DEFAULT_INVENTORY;
+    });
+}
 
-fetch("inventory.json")
-  .then(res => {
-    if (!res.ok) throw new Error("inventory.json not found");
-    return res.json();
-  })
-  .then(defaults => {
+async function ensureProductsLoaded() {
+  if (products.length) return products;
+
+  try {
     const stored = localStorage.getItem("products");
-    products = stored
-      ? normalizeProducts(JSON.parse(stored))
-      : normalizeProducts(defaults.map(p => ({ ...p, singles: 0, cases: 0 })));
-    save(false);      // save storage
-    render();         // ✅ CRITICAL: render after load
-  })
-  .catch(err => {
-    console.error(err);
-    // fallback: try localStorage first, otherwise seed with built-in defaults
-    const stored = localStorage.getItem("products");
-    products = stored
-      ? normalizeProducts(JSON.parse(stored))
-      : normalizeProducts(DEFAULT_INVENTORY.map(p => ({ ...p, singles: 0, cases: 0 })));
-    save(false);
-    render();
-  });
+    if (stored) {
+      products = normalizeProducts(JSON.parse(stored));
+      return products;
+    }
+  } catch (err) {
+    console.warn("Unable to read from storage", err);
+  }
+
+  const defaults = await fetchDefaults();
+  products = normalizeProducts(defaults.map(p => ({ ...p, singles: 0, cases: 0 })));
+  save(false);
+  return products;
+}
+
+async function initInventoryPage() {
+  const inventoryEl = document.getElementById("inventory");
+  if (!inventoryEl) return;
+
+  renderLoading();
+  await ensureProductsLoaded();
+  render();
+}
+
+/* INIT */
+initInventoryPage();
