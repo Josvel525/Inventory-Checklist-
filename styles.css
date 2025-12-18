@@ -1,216 +1,39 @@
-:root {
-  --bg: #0f172a;       /* Deep Navy Background */
-  --surface: #1e293b;  /* Lighter Navy for Cards */
-  --border: #334155;   /* Subtle Border */
-  --text: #f8fafc;     /* White/Off-white Text */
-  --muted: #94a3b8;    /* Muted Text */
-  --accent: #3b82f6;   /* Bright Blue */
-  --accent-hover: #2563eb;
-  --success: #10b981;
-  --danger: #ef4444;
-  --radius: 12px;
-  --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-}
-
-* { box-sizing: border-box; }
-
 body {
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  line-height: 1.5;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 16px;
 }
 
-/* --- Layout --- */
-.shell {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
+h1 {
+  text-align: center;
 }
 
-/* --- Header --- */
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 0;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.brand {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-.brand__mark { font-size: 24px; }
-.brand__title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
-.brand__subtitle { font-size: 13px; color: var(--muted); font-weight: 500; }
-
-.row { display: flex; gap: 10px; align-items: center; }
-
-/* --- Cards --- */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow);
-}
-
-.card__title {
-  margin-top: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* --- Inputs --- */
-.grid { display: grid; gap: 16px; }
-.grid--2 { grid-template-columns: 1fr 1fr; }
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field__label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-
-.input {
-  background: rgba(0,0,0,0.2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: white;
-  font-size: 14px;
-  transition: border-color 0.2s;
-}
-.input:focus { outline: none; border-color: var(--accent); }
-
-/* --- Buttons --- */
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.btn--primary { background: var(--accent); color: white; }
-.btn--primary:hover { background: var(--accent-hover); }
-.btn--ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-.btn--ghost:hover { border-color: var(--text); color: var(--text); }
-.btn--soft { background: rgba(255,255,255,0.05); color: var(--text); }
-.btn--soft:hover { background: rgba(255,255,255,0.1); }
-
-/* --- Inventory List (Checklist View) --- */
-.inv-group { margin-bottom: 20px; }
-.inv-group__header {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent);
-  margin-bottom: 10px;
-  font-weight: 800;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 5px;
-}
-
-.inv-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+section, .product {
+  background: #020617;
   padding: 12px;
-  background: rgba(255,255,255,0.02);
-  border-radius: 8px;
-  margin-bottom: 8px;
-  border: 1px solid transparent;
+  margin-bottom: 12px;
+  border-radius: 10px;
 }
-.inv-item:hover { border-color: var(--border); }
-.inv-item.completed { border-left: 3px solid var(--success); }
 
-.inv-info h4 { margin: 0; font-size: 15px; font-weight: 600; }
-.inv-info span { font-size: 12px; color: var(--muted); }
-
-.inv-inputs { display: flex; gap: 10px; align-items: center; }
-.qty-wrap { display: flex; flex-direction: column; align-items: flex-end; }
-.qty-wrap label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
-.qty-input { width: 60px; text-align: center; }
-
-/* --- Report Table Styles (Used in report.html) --- */
-.report-table {
+input, select, button {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-top: 10px;
+  margin: 4px 0;
+  padding: 8px;
 }
 
-.report-table th {
-  text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 10px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(0,0,0,0.1);
+button {
+  background: #22c55e;
+  border: none;
+  font-weight: bold;
 }
 
-.report-table td {
-  padding: 10px;
-  vertical-align: middle;
-  font-size: 14px;
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-/* Grouping Border Logic for Report */
-.group-tbody { border-bottom: 1px solid var(--border); }
-.group-tbody:last-child { border-bottom: none; }
-.group-tbody tr:first-child td { border-top: 1px solid rgba(255,255,255,0.05); }
-
-/* Badges */
-.badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
+td, th {
+  border-bottom: 1px solid #334155;
+  padding: 6px;
 }
-.badge--alc { background: rgba(239,68,68,0.2); color: #fca5a5; }
-.badge--na { background: rgba(16,185,129,0.2); color: #6ee7b7; }
-
-/* --- PRINT OVERRIDES (Perfect PDF) --- */
-@media print {
-  body { background: white; color: #111; -webkit-print-color-adjust: exact; }
-  .topbar, .btn, .no-print { display: none !important; }
-  .shell { max-width: 100%; padding: 0; margin: 0; }
-  
-  .card {
-    box-shadow: none;
-    border: none;
-    padding: 0;
-    margin-bottom: 20px;
-    background: white;
-  }
-  
-  .card__title { color: #000; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-  
-  .report-table th { color: #000; background: #f3f4f6; border-bottom: 2px solid #000; }
-  .report-table td { color: #000; border-bottom: 1px solid #ddd; }
-  
-  /* Ensure grouping borders are visible in print */
-  .group-tbody { border-bottom: 1px solid #000; }
-  .group-tbody tr:first-child td { border-top: none; }
-  
-  .badge { border: 1px solid #000; color: #000; background: transparent; }
-  
-  /* Force page breaks if needed, but prefer single page for summary */
-  table { page-break-inside: auto; }
-  tr { page-break-inside: avoid; }
-}
-
