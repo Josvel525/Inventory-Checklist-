@@ -1,176 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Inventory Report</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    /* specific overrides for report view */
-    .summary-bar {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-    .summary-tile {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 15px;
-      border-radius: var(--radius);
-    }
-    .summary-tile h3 { font-size: 11px; color: var(--muted); margin: 0; text-transform: uppercase; }
-    .summary-tile div { font-size: 24px; font-weight: 800; margin-top: 5px; color: var(--text); }
-    
-    @media print {
-      .summary-tile { background: white; border: 1px solid #ccc; }
-      .summary-tile div { color: black; }
-    }
-  </style>
+<title>Inventory Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<div class="shell" id="reportRoot">
-  <!-- Header -->
-  <div class="topbar" style="border-bottom:none; margin-bottom:0;">
-    <div class="brand">
-      <div>
-        <div class="brand__title" style="font-size:28px;">Inventory Report</div>
-        <div class="brand__subtitle" id="reportMeta">Loading...</div>
-      </div>
-    </div>
-    <div class="no-print">
-      <button class="btn btn--primary" onclick="window.print()">🖨️ Print to PDF</button>
-    </div>
-  </div>
-
-  <!-- Summary Tiles -->
-  <div class="summary-bar" id="summaryRoot">
-    <!-- Injected via JS -->
-  </div>
-
-  <!-- Main Table -->
-  <div class="card">
-    <div class="card__title">
-      <span>Consolidated List</span>
-      <span style="font-size:12px; font-weight:400; color:var(--muted)">Grouped by Product</span>
-    </div>
-    
-    <table class="report-table">
-      <thead>
-        <tr>
-          <th style="width:10%; text-align:right;">Qty</th>
-          <th style="width:15%">Unit Type</th>
-          <th style="width:30%">Product Name</th>
-          <th style="width:25%">Product Type</th>
-          <th style="width:20%">Alc / Non-Alc</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-        <!-- Rows Injected JS -->
-      </tbody>
-    </table>
-  </div>
-</div>
+<h1>Inventory Report</h1>
+<div id="report"></div>
 
 <script>
-  // Simplified logic specifically for the Report View
-  const STORE_KEY = "inventory_state_v2";
-  const state = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+const data = JSON.parse(localStorage.getItem("products")) || [];
+let html = "<table><tr><th>Item</th><th>Category</th><th>Total</th></tr>";
+let grand = 0;
 
-  if (!state.items) {
-    document.getElementById('tableBody').innerHTML = '<tr><td colspan="5" style="padding:20px; text-align:center;">No data found. Please save inventory first.</td></tr>';
-  } else {
-    
-    // 1. Meta Data
-    const d = state.meta.date || "No Date";
-    const v = state.meta.venue || "Unknown Venue";
-    const b = state.meta.bartender || "Staff";
-    document.getElementById('reportMeta').textContent = `${d} • ${v} • Counted by: ${b}`;
+data.forEach(p=>{
+  const t = p.singles + p.cases*p.pack;
+  grand += t;
+  html += `<tr><td>${p.name}</td><td>${p.category}</td><td>${t}</td></tr>`;
+});
 
-    // 2. Summary Stats
-    const totalItems = state.items.reduce((a, b) => a + (b.primaryQty||0) + (b.secondaryQty||0), 0);
-    const totalSKUs = state.items.length;
-    // Simple logic: if category is Beer/Wine/Spirits => Alc
-    const alcCount = state.items.filter(i => ['Beer','Wine','Spirits'].includes(i.category))
-                         .reduce((a,b) => a + (b.primaryQty||0) + (b.secondaryQty||0), 0);
-    
-    const summaryHtml = `
-      <div class="summary-tile"><h3>Total Units</h3><div>${totalItems}</div></div>
-      <div class="summary-tile"><h3>Total SKUs</h3><div>${totalSKUs}</div></div>
-      <div class="summary-tile"><h3>Alcoholic Units</h3><div>${alcCount}</div></div>
-      <div class="summary-tile"><h3>Venue</h3><div style="font-size:18px">${v}</div></div>
-    `;
-    document.getElementById('summaryRoot').innerHTML = summaryHtml;
-
-    // 3. Render Table with Grouping
-    const tbody = document.getElementById('tableBody');
-    
-    // Sort by Category then Name
-    const sorted = state.items.sort((a,b) => {
-      if(a.category !== b.category) return a.category.localeCompare(b.category);
-      return a.name.localeCompare(b.name);
-    });
-
-    sorted.forEach(item => {
-      // Determine rows needed (Primary + Secondary)
-      const rows = [];
-      const type = item.category;
-      const isAlc = ['Beer','Wine','Spirits'].includes(type);
-      const isSupplies = type === 'Supplies';
-      
-      const alcBadge = isSupplies ? '-' : (isAlc 
-        ? '<span class="badge badge--alc">Alcoholic</span>' 
-        : '<span class="badge badge--na">Non-Alc</span>');
-
-      // Primary Row
-      if(item.primaryUnit) {
-        rows.push({
-          qty: item.primaryQty || 0,
-          unit: item.caseSize > 0 ? `${item.primaryUnit} (${item.caseSize})` : item.primaryUnit,
-          name: item.name,
-          type: type,
-          badge: alcBadge
-        });
-      }
-
-      // Secondary Row (e.g. Loose Cans)
-      if(item.secondaryUnit) {
-         rows.push({
-          qty: item.secondaryQty || 0,
-          unit: item.secondaryUnit + " (Loose)",
-          name: item.name, // Same name, visually grouped
-          type: type,
-          badge: alcBadge
-        });
-      }
-
-      // Create a TBODY for this item to group borders
-      // We only render if there is at least one quantity > 0 OR if we want to show full list (showing full list is better for reports)
-      if (rows.length > 0) {
-        const itemGroup = document.createElement('tbody');
-        itemGroup.className = 'group-tbody';
-        
-        rows.forEach(r => {
-           // Highlight row if quantity > 0
-           const colorStyle = r.qty > 0 ? 'font-weight:700;' : 'color:var(--muted); opacity:0.7;';
-           
-           itemGroup.innerHTML += `
-             <tr>
-               <td style="text-align:right; ${colorStyle}">${r.qty}</td>
-               <td style="${colorStyle}">${r.unit}</td>
-               <td style="font-weight:600">${r.name}</td>
-               <td>${r.type}</td>
-               <td>${r.badge}</td>
-             </tr>
-           `;
-        });
-        tbody.appendChild(itemGroup);
-      }
-    });
-  }
+html += `<tr><td colspan="2"><strong>Grand Total</strong></td><td>${grand}</td></tr></table>`;
+document.getElementById("report").innerHTML = html;
 </script>
+
 </body>
 </html>
-
