@@ -1,60 +1,61 @@
-/* =================================================
-   CONFIG
-================================================= */
 const PACK_SIZES = [6, 12, 18, 24, 32, 40];
 
-/* =================================================
-   LOAD PRODUCTS (JSON → localStorage)
-================================================= */
 let products = [];
 
-fetch("inventory.json")
-  .then(res => res.json())
-  .then(defaults => {
-    const stored = localStorage.getItem("products");
-    products = stored
-      ? JSON.parse(stored)
-      : defaults.map(p => ({
-          ...p,
-          singles: 0,
-          cases: 0
-        }));
-    save(false);
-  });
-
-/* =================================================
-   SAVE + RENDER
-================================================= */
 function save(renderNow = true) {
   localStorage.setItem("products", JSON.stringify(products));
   if (renderNow) render();
 }
 
+function renderLoading() {
+  const el = document.getElementById("inventory");
+  if (!el) return;
+  el.innerHTML = `<div class="product loading">Loading inventory…</div>`;
+}
+
 function render() {
   const el = document.getElementById("inventory");
+  if (!el) return;
+
+  if (!products.length) {
+    el.innerHTML = `<div class="product loading">No products loaded.</div>`;
+    return;
+  }
+
   el.innerHTML = "";
 
   products.forEach((p, i) => {
-    const totalUnits = p.singles + p.cases * p.pack;
+    const totalUnits = (p.singles || 0) + (p.cases || 0) * (p.pack || 24);
 
     el.innerHTML += `
       <div class="product">
-        <strong>${p.name}</strong> (${p.category})<br>
+        <div class="rowTop">
+          <strong>${p.name}</strong>
+          <span class="pill">${p.category || "Uncategorized"}</span>
+        </div>
 
-        Singles
-        <input type="number" min="0" value="${p.singles}"
-          onchange="products[${i}].singles=this.valueAsNumber||0;save()">
+        <div class="grid">
+          <label>
+            <span>Singles</span>
+            <input type="number" min="0" value="${p.singles || 0}"
+              onchange="products[${i}].singles=this.valueAsNumber||0;save()">
+          </label>
 
-        Cases
-        <input type="number" min="0" value="${p.cases}"
-          onchange="products[${i}].cases=this.valueAsNumber||0;save()">
+          <label>
+            <span>Cases</span>
+            <input type="number" min="0" value="${p.cases || 0}"
+              onchange="products[${i}].cases=this.valueAsNumber||0;save()">
+          </label>
 
-        Pack Size
-        <select onchange="products[${i}].pack=this.valueAsNumber;save()">
-          ${PACK_SIZES.map(size =>
-            `<option ${size === p.pack ? "selected" : ""}>${size}</option>`
-          ).join("")}
-        </select>
+          <label>
+            <span>Pack</span>
+            <select onchange="products[${i}].pack=this.valueAsNumber;save()">
+              ${PACK_SIZES.map(size =>
+                `<option ${size === (p.pack || 24) ? "selected" : ""}>${size}</option>`
+              ).join("")}
+            </select>
+          </label>
+        </div>
 
         <div class="total">Total Units: ${totalUnits}</div>
       </div>
@@ -62,76 +63,77 @@ function render() {
   });
 }
 
-/* =================================================
-   ADD PRODUCT
-================================================= */
 function addProduct() {
-  if (!name.value.trim()) return;
+  const n = document.getElementById("name").value.trim();
+  const c = document.getElementById("category").value.trim();
+  const u = document.getElementById("unit").value;
 
-  products.push({
-    name: name.value.trim(),
-    category: category.value.trim(),
-    unit: unit.value,
+  if (!n) return;
+
+  products.unshift({
+    name: n,
+    category: c || "Uncategorized",
+    unit: u,
     singles: 0,
     cases: 0,
     pack: 24
   });
 
-  name.value = "";
-  category.value = "";
+  document.getElementById("name").value = "";
+  document.getElementById("category").value = "";
 
-  save();
+  save(true);
 }
 
-/* =================================================
-   CSV EXPORT WITH SUBTOTALS + GRAND TOTAL
-================================================= */
 function generateCSV() {
   let csv = "Item,Category,Singles,Cases,Pack,Total Units\n";
-
   const categoryTotals = {};
   let grandTotal = 0;
 
-  // ITEMIZED INVENTORY
   products.forEach(p => {
-    const totalUnits = p.singles + p.cases * p.pack;
+    const totalUnits = (p.singles || 0) + (p.cases || 0) * (p.pack || 24);
     grandTotal += totalUnits;
+    categoryTotals[p.category] = (categoryTotals[p.category] || 0) + totalUnits;
 
-    if (!categoryTotals[p.category]) {
-      categoryTotals[p.category] = 0;
-    }
-    categoryTotals[p.category] += totalUnits;
-
-    csv += `${p.name},${p.category},${p.singles},${p.cases},${p.pack},${totalUnits}\n`;
+    csv += `${p.name},${p.category},${p.singles || 0},${p.cases || 0},${p.pack || 24},${totalUnits}\n`;
   });
 
-  // SPACING
-  csv += "\n";
-
-  // CATEGORY SUBTOTALS
-  csv += "Category Subtotals\n";
+  csv += "\nCategory Subtotals\n";
   Object.keys(categoryTotals).forEach(cat => {
     csv += `${cat},${categoryTotals[cat]}\n`;
   });
 
-  // SPACING
-  csv += "\n";
+  csv += `\nGrand Total,${grandTotal}\n`;
 
-  // GRAND TOTAL
-  csv += `Grand Total,${grandTotal}\n`;
-
-  // DOWNLOAD CSV
   const blob = new Blob([csv], { type: "text/csv" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = "bartending-inventory-report.csv";
   link.click();
 
-  // OPEN FORMATTED REPORT PAGE
   window.open("report.html", "_blank");
 }
 
-/* =================================================
-   INIT
-================================================= */
-render();
+/* INIT */
+renderLoading();
+
+fetch("inventory.json")
+  .then(res => {
+    if (!res.ok) throw new Error("inventory.json not found");
+    return res.json();
+  })
+  .then(defaults => {
+    const stored = localStorage.getItem("products");
+    products = stored
+      ? JSON.parse(stored)
+      : defaults.map(p => ({ ...p, singles: 0, cases: 0 }));
+    save(false);      // save storage
+    render();         // ✅ CRITICAL: render after load
+  })
+  .catch(err => {
+    console.error(err);
+    // fallback: try localStorage anyway
+    const stored = localStorage.getItem("products");
+    products = stored ? JSON.parse(stored) : [];
+    render();
+  });
