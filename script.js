@@ -1,4 +1,5 @@
 const PACK_SIZES = [1, 6, 12, 18, 24, 32, 40];
+const REPORT_FILENAME = "bartending-inventory-report.csv";
 
 // fallback data so the app renders even if inventory.json cannot be fetched (e.g. file:// usage)
 const DEFAULT_INVENTORY = [
@@ -74,13 +75,11 @@ function render() {
     return;
   }
 
-  el.innerHTML = "";
+  el.innerHTML = products.reduce((markup, p, i) => {
+    if (p.completed) return markup;
+    const totalUnits = getTotalUnits(p);
 
-  products.forEach((p, i) => {
-    if (p.completed) return;
-    const totalUnits = (p.singles || 0) + (p.cases || 0) * (p.pack || 24);
-
-    el.innerHTML += `
+    return markup + `
       <div class="product">
         <div class="rowTop">
           <div class="rowInfo">
@@ -90,18 +89,9 @@ function render() {
           <button class="secondary" onclick="completeProduct(${i})">Complete</button>
         </div>
 
-        <div class="grid">
-          <label>
-            <span>Singles</span>
-            <input type="number" min="0" value="${p.singles || 0}"
-              onchange="products[${i}].singles=this.valueAsNumber||0;save()">
-          </label>
-
-          <label>
-            <span>Cases</span>
-            <input type="number" min="0" value="${p.cases || 0}"
-              onchange="products[${i}].cases=this.valueAsNumber||0;save()">
-          </label>
+        <div class="grid countsGrid">
+          ${quantityControl("Singles", p.singles || 0, i, "singles")}
+          ${quantityControl("Cases", p.cases || 0, i, "cases")}
 
           <label>
             <span>Pack</span>
@@ -116,7 +106,7 @@ function render() {
         <div class="total">Total Units: ${totalUnits}</div>
       </div>
     `;
-  });
+  }, "");
 }
 
 function completeProduct(index) {
@@ -148,7 +138,7 @@ function addProduct() {
   save(true);
 }
 
-function generateCSV() {
+async function generateCSV() {
   let csv = "Item,Category,Singles,Cases,Pack,Total Units\n";
   const categoryTotals = {};
   let grandTotal = 0;
@@ -169,17 +159,86 @@ function generateCSV() {
   csv += `\nGrand Total,${grandTotal}\n`;
 
   const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "bartending-inventory-report.csv";
-  link.click();
+  triggerDownload(blob, REPORT_FILENAME);
 
   window.open("report.html", "_blank");
+  await promptShareReport(blob, REPORT_FILENAME);
 }
 
 function packOptions(currentPack) {
   const merged = new Set([...PACK_SIZES, currentPack || 24]);
   return Array.from(merged).sort((a, b) => a - b);
+}
+
+function quantityControl(label, value, index, field) {
+  return `
+    <label class="quantityControl">
+      <span>${label}</span>
+      <div class="stepper" role="group" aria-label="${label}">
+        <button type="button" class="stepperButton" aria-label="Decrease ${label.toLowerCase()}" onclick="changeCount(${index}, '${field}', -1)">-</button>
+        <div class="stepperValue" aria-live="polite">${value}</div>
+        <button type="button" class="stepperButton" aria-label="Increase ${label.toLowerCase()}" onclick="changeCount(${index}, '${field}', 1)">+</button>
+      </div>
+    </label>
+  `;
+}
+
+function changeCount(index, field, delta) {
+  const product = products[index];
+  if (!product || (field !== "singles" && field !== "cases")) return;
+
+  const next = Math.max(0, (product[field] || 0) + delta);
+  product[field] = next;
+  save();
+}
+
+function getTotalUnits(product) {
+  return (product.singles || 0) + (product.cases || 0) * (product.pack || 24);
+}
+
+function triggerDownload(blob, filename) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+async function promptShareReport(blob, filename) {
+  const smsNumber = "+15555551234"; // placeholder SMS number
+  const shareText = `Inventory report ready to send to ${smsNumber}.`;
+
+  const shareableFile = createShareableFile(blob, filename);
+  const shareData = shareableFile
+    ? { files: [shareableFile], title: "Bartending Inventory Report", text: shareText }
+    : { title: "Bartending Inventory Report", text: shareText };
+
+  if (navigator.canShare && navigator.canShare(shareData)) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (err) {
+      console.warn("Share was cancelled or failed", err);
+    }
+  }
+
+  alert(`Tap OK to open your messages app and send the report to ${smsNumber}. Attach ${filename} from your downloads if prompted.`);
+  openSmsDraft(smsNumber);
+}
+
+function createShareableFile(blob, filename) {
+  if (typeof File !== "undefined") {
+    try {
+      return new File([blob], filename, { type: "text/csv" });
+    } catch (err) {
+      console.warn("Could not create File from blob", err);
+    }
+  }
+  return null;
+}
+
+function openSmsDraft(number) {
+  const smsLink = `sms:${encodeURIComponent(number)}?body=${encodeURIComponent("Inventory report is ready to send.")}`;
+  window.open(smsLink, "_blank");
 }
 
 /* INIT */
