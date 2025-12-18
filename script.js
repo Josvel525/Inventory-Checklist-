@@ -37,6 +37,16 @@ const DEFAULT_INVENTORY = [
 
 let products = [];
 
+function normalizeProducts(list) {
+  return (list || []).map(p => ({
+    ...p,
+    singles: Number.isFinite(p.singles) ? p.singles : 0,
+    cases: Number.isFinite(p.cases) ? p.cases : 0,
+    pack: parseInt(p.pack, 10) || 24,
+    completed: Boolean(p.completed)
+  }));
+}
+
 function save(renderNow = true) {
   localStorage.setItem("products", JSON.stringify(products));
   if (renderNow) render();
@@ -57,16 +67,27 @@ function render() {
     return;
   }
 
+  const activeProducts = products.filter(p => !p.completed);
+
+  if (!activeProducts.length) {
+    el.innerHTML = `<div class="product loading">All products are completed. Add new items to continue.</div>`;
+    return;
+  }
+
   el.innerHTML = "";
 
   products.forEach((p, i) => {
+    if (p.completed) return;
     const totalUnits = (p.singles || 0) + (p.cases || 0) * (p.pack || 24);
 
     el.innerHTML += `
       <div class="product">
         <div class="rowTop">
-          <strong>${p.name}</strong>
-          <span class="pill">${p.category || "Uncategorized"}</span>
+          <div class="rowInfo">
+            <strong>${p.name}</strong>
+            <span class="pill">${p.category || "Uncategorized"}</span>
+          </div>
+          <button class="secondary" onclick="completeProduct(${i})">Complete</button>
         </div>
 
         <div class="grid">
@@ -98,6 +119,12 @@ function render() {
   });
 }
 
+function completeProduct(index) {
+  if (!products[index]) return;
+  products[index].completed = true;
+  save();
+}
+
 function addProduct() {
   const n = document.getElementById("name").value.trim();
   const c = document.getElementById("category").value.trim();
@@ -111,7 +138,8 @@ function addProduct() {
     unit: u,
     singles: 0,
     cases: 0,
-    pack: 24
+    pack: 24,
+    completed: false
   });
 
   document.getElementById("name").value = "";
@@ -165,8 +193,8 @@ fetch("inventory.json")
   .then(defaults => {
     const stored = localStorage.getItem("products");
     products = stored
-      ? JSON.parse(stored)
-      : defaults.map(p => ({ ...p, singles: 0, cases: 0 }));
+      ? normalizeProducts(JSON.parse(stored))
+      : normalizeProducts(defaults.map(p => ({ ...p, singles: 0, cases: 0 })));
     save(false);      // save storage
     render();         // ✅ CRITICAL: render after load
   })
@@ -175,8 +203,8 @@ fetch("inventory.json")
     // fallback: try localStorage first, otherwise seed with built-in defaults
     const stored = localStorage.getItem("products");
     products = stored
-      ? JSON.parse(stored)
-      : DEFAULT_INVENTORY.map(p => ({ ...p, singles: 0, cases: 0 }));
+      ? normalizeProducts(JSON.parse(stored))
+      : normalizeProducts(DEFAULT_INVENTORY.map(p => ({ ...p, singles: 0, cases: 0 })));
     save(false);
     render();
   });
