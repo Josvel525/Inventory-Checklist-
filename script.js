@@ -1,4 +1,39 @@
-const PACK_SIZES = [6, 12, 18, 24, 32, 40];
+const PACK_SIZES = [1, 6, 12, 18, 24, 32, 40];
+
+// fallback data so the app renders even if inventory.json cannot be fetched (e.g. file:// usage)
+const DEFAULT_INVENTORY = [
+  { name: "Diet Coke", category: "Non-Alcoholic", unit: "can", pack: 24 },
+  { name: "Coke Zero", category: "Non-Alcoholic", unit: "can", pack: 24 },
+  { name: "Sprite", category: "Non-Alcoholic", unit: "can", pack: 24 },
+  { name: "Ginger Beer (Fever-Tree)", category: "Non-Alcoholic", unit: "can", pack: 24 },
+  { name: "Pineapple Juice (Dole)", category: "Non-Alcoholic", unit: "can", pack: 24 },
+  { name: "Topo Chico", category: "Mixers / Water", unit: "bottle", pack: 12 },
+  { name: "Lime Juice (Country Fare)", category: "Mixers / Water", unit: "bottle", pack: 12 },
+  { name: "Cranberry Juice (Ocean Spray)", category: "Mixers / Water", unit: "bottle", pack: 12 },
+  { name: "Diet Tonic Water (H-E-B)", category: "Mixers / Water", unit: "bottle", pack: 12 },
+  { name: "Miller Lite", category: "Beer", unit: "can", pack: 24 },
+  { name: "Dos Equis", category: "Beer", unit: "can", pack: 24 },
+  { name: "Shiner", category: "Beer", unit: "can", pack: 24 },
+  { name: "Karbach Love Street", category: "Beer", unit: "can", pack: 18 },
+  { name: "Michelob Ultra", category: "Beer", unit: "can", pack: 24 },
+  { name: "Modelo", category: "Beer", unit: "can", pack: 24 },
+  { name: "Jack Daniel's", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Malibu Coconut Rum", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Svedka Raspberry", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Ketel One", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Bombay Sapphire Gin", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "El Jimador Tequila (Silver)", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Titos Vodka", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Dewarcs White Label", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Bacardi Superior", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Triple Sec", category: "Spirits", unit: "bottle", pack: 6 },
+  { name: "Ryan Patrick Pinot Grigio", category: "Wine", unit: "bottle", pack: 12 },
+  { name: "Old Mountain Sauvignon Blanc", category: "Wine", unit: "bottle", pack: 12 },
+  { name: "Old Mountain Cabernet Sauvignon", category: "Wine", unit: "bottle", pack: 12 },
+  { name: "Introvert Pinot Noir", category: "Wine", unit: "bottle", pack: 12 },
+  { name: "Ice Bags", category: "Supplies", unit: "bag", pack: 1 },
+  { name: "Bags of Cups", category: "Supplies", unit: "stack", pack: 1 }
+];
 
 let products = [];
 
@@ -49,9 +84,9 @@ function render() {
 
           <label>
             <span>Pack</span>
-            <select onchange="products[${i}].pack=this.valueAsNumber;save()">
-              ${PACK_SIZES.map(size =>
-                `<option ${size === (p.pack || 24) ? "selected" : ""}>${size}</option>`
+            <select onchange="products[${i}].pack=parseInt(this.value, 10);save()">
+              ${packOptions(p.pack).map(size =>
+                `<option value="${size}" ${size === (p.pack || 24) ? "selected" : ""}>${size}</option>`
               ).join("")}
             </select>
           </label>
@@ -114,6 +149,11 @@ function generateCSV() {
   window.open("report.html", "_blank");
 }
 
+function packOptions(currentPack) {
+  const merged = new Set([...PACK_SIZES, currentPack || 24]);
+  return Array.from(merged).sort((a, b) => a - b);
+}
+
 /* INIT */
 renderLoading();
 
@@ -132,8 +172,11 @@ fetch("inventory.json")
   })
   .catch(err => {
     console.error(err);
-    // fallback: try localStorage anyway
+    // fallback: try localStorage first, otherwise seed with built-in defaults
     const stored = localStorage.getItem("products");
-    products = stored ? JSON.parse(stored) : [];
+    products = stored
+      ? JSON.parse(stored)
+      : DEFAULT_INVENTORY.map(p => ({ ...p, singles: 0, cases: 0 }));
+    save(false);
     render();
   });
