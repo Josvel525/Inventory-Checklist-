@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Product - Bartending2U Inventory</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <p class="eyebrow">Bartending2U</p>
+        <h1>Add Product</h1>
+        <p class="lede">Add a new inventory item, then return to the checklist.</p>
+      </div>
+      <a class="secondary" href="index.html">Back to Inventory</a>
+    </header>
+
+    <section class="card addForm" aria-label="Add a product">
+      <form id="addProductForm" class="formGrid" novalidate>
+        <label>
+          <span>Product name</span>
+          <input id="name" name="name" placeholder="Topo Chico" autocomplete="off" required>
+        </label>
+
+        <label>
+          <span>Category</span>
+          <input id="category" name="category" placeholder="Mixers / Water" autocomplete="off">
+        </label>
+
+        <label>
+          <span>Unit type</span>
+          <select id="unit" name="unit">
+            <option value="can">Can</option>
+            <option value="bottle">Bottle</option>
+            <option value="each">Each</option>
+            <option value="bag">Bag</option>
+            <option value="stack">Stack</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Default pack size</span>
+          <select id="pack" name="pack">
+            <option value="6">6</option>
+            <option value="12">12</option>
+            <option value="18">18</option>
+            <option value="24" selected>24</option>
+            <option value="32">32</option>
+            <option value="40">40</option>
+          </select>
+        </label>
+
+        <button class="primary fullWidth" type="submit">Save Product</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="add-product.js"></script>
+</body>
+</html>
